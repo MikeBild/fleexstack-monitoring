@@ -24,7 +24,7 @@ packages:
           - name: collect-logs-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "*/5 * * * *"
+              cron: "5 * * * *"
 
       - name: analyze-logs
         runtime: nodejs:18
@@ -36,7 +36,7 @@ packages:
           - name: analyze-logs-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "0,15,30,45 * * * *"
+              cron: "15 * * * *"
 
       - name: detect-issues
         runtime: nodejs:18
@@ -48,7 +48,7 @@ packages:
           - name: detect-issues-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "5,20,35,50 * * * *"
+              cron: "20 * * * *"
 
       - name: predict-issues
         runtime: nodejs:18
@@ -60,7 +60,7 @@ packages:
           - name: predict-issues-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "1 * * * *"
+              cron: "30 * * * *"
 
       - name: send-digest
         runtime: nodejs:18
@@ -72,7 +72,7 @@ packages:
           - name: send-digest-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "1 8 * * *"
+              cron: "0 8 * * *"
 
       - name: cleanup-data
         runtime: nodejs:18
