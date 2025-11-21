@@ -21,7 +21,7 @@ packages:
           timeout: 60000
           memory: 256
         triggers:
-          - name: every-5-minutes
+          - name: collect-logs-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "*/5 * * * *"
@@ -33,7 +33,7 @@ packages:
           timeout: 120000
           memory: 512
         triggers:
-          - name: every-15-minutes
+          - name: analyze-logs-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "*/15 * * * *"
@@ -45,7 +45,7 @@ packages:
           timeout: 60000
           memory: 256
         triggers:
-          - name: every-15-minutes
+          - name: detect-issues-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "5,20,35,50 * * * *"
@@ -57,7 +57,7 @@ packages:
           timeout: 120000
           memory: 512
         triggers:
-          - name: hourly
+          - name: predict-issues-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "0 * * * *"
@@ -69,7 +69,7 @@ packages:
           timeout: 60000
           memory: 256
         triggers:
-          - name: daily-8am
+          - name: send-digest-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "0 8 * * *"
@@ -81,7 +81,7 @@ packages:
           timeout: 120000
           memory: 256
         triggers:
-          - name: daily-2am
+          - name: cleanup-data-trigger
             sourceType: scheduler
             sourceDetails:
               cron: "0 2 * * *"
