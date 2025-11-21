@@ -29,6 +29,7 @@ packages:
       - name: collect-logs
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 60000
           memory: 128
@@ -36,6 +37,7 @@ packages:
       - name: analyze-logs
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 120000
           memory: 256
@@ -43,6 +45,7 @@ packages:
       - name: detect-issues
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 60000
           memory: 128
@@ -50,6 +53,7 @@ packages:
       - name: predict-issues
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 120000
           memory: 256
@@ -57,6 +61,7 @@ packages:
       - name: send-digest
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 60000
           memory: 128
@@ -64,6 +69,7 @@ packages:
       - name: cleanup-data
         runtime: nodejs:18
         main: main
+        web: true
         limits:
           timeout: 120000
           memory: 256
