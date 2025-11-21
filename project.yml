@@ -36,7 +36,7 @@ packages:
           - name: analyze-logs-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "*/15 * * * *"
+              cron: "0,15,30,45 * * * *"
 
       - name: detect-issues
         runtime: nodejs:18
@@ -60,7 +60,7 @@ packages:
           - name: predict-issues-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "0 * * * *"
+              cron: "1 * * * *"
 
       - name: send-digest
         runtime: nodejs:18
@@ -72,7 +72,7 @@ packages:
           - name: send-digest-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "0 8 * * *"
+              cron: "1 8 * * *"
 
       - name: cleanup-data
         runtime: nodejs:18
