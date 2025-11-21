@@ -1,4 +1,4 @@
-async function main(event, context) {
+export async function main(event, context) {
   const logRetentionDays = parseInt(process.env.LOG_RETENTION_DAYS || '30')
   const issueRetentionDays = 90
 
@@ -15,4 +15,3 @@ async function main(event, context) {
   }
 }
 
-exports.main = main

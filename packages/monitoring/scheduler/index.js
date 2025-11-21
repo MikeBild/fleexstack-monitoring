@@ -1,4 +1,4 @@
-async function main(event, context) {
+export async function main(event, context) {
   const now = new Date()
   const minute = now.getMinutes()
   const hour = now.getHours()
@@ -68,4 +68,3 @@ async function invokeFunction(functionName) {
   }
 }
 
-exports.main = main

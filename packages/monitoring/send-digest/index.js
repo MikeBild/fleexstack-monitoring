@@ -1,4 +1,4 @@
-async function main(event, context) {
+export async function main(event, context) {
   const digest = {
     date: new Date().toISOString().split('T')[0],
     summary: {
@@ -20,4 +20,3 @@ async function main(event, context) {
   }
 }
 
-exports.main = main

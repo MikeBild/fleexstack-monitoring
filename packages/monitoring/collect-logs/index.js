@@ -1,4 +1,4 @@
-async function main(event, context) {
+export async function main(event, context) {
   const sources = [
     { name: 'blue', host: process.env.BLUE_HOST },
     { name: 'green', host: process.env.GREEN_HOST },
@@ -46,4 +46,3 @@ async function main(event, context) {
   }
 }
 
-exports.main = main
