@@ -1,4 +1,4 @@
-async function main(args) {
+export async function main(event, context) {
   const digest = {
     date: new Date().toISOString().split('T')[0],
     summary: {
@@ -12,8 +12,6 @@ async function main(args) {
 
   console.log('Daily Digest:', JSON.stringify(digest, null, 2))
 
-  // TODO: Send digest via email or GitHub issue
-
   return {
     body: {
       success: true,
@@ -21,5 +19,3 @@ async function main(args) {
     },
   }
 }
-
-export { main }

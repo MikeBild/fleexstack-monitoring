@@ -1,4 +1,4 @@
-async function main(args) {
+export async function main(event, context) {
   const sources = [
     { name: 'blue', host: process.env.BLUE_HOST },
     { name: 'green', host: process.env.GREEN_HOST },
@@ -24,7 +24,6 @@ async function main(args) {
 
       const logs = await response.json()
 
-      // TODO: Store logs in database
       results.push({
         source: source.name,
         collected: logs.length,
@@ -46,5 +45,3 @@ async function main(args) {
     },
   }
 }
-
-export { main }

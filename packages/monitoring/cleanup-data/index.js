@@ -1,8 +1,6 @@
-async function main(args) {
+export async function main(event, context) {
   const logRetentionDays = parseInt(process.env.LOG_RETENTION_DAYS || '30')
   const issueRetentionDays = 90
-
-  // TODO: Delete old data from database
 
   return {
     body: {
@@ -16,5 +14,3 @@ async function main(args) {
     },
   }
 }
-
-export { main }

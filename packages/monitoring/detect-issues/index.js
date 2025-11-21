@@ -1,8 +1,6 @@
-async function main(args) {
+export async function main(event, context) {
   const issues = []
   const errorRate = 0
-
-  // TODO: Query database for error rate and repeated errors
 
   return {
     body: {
@@ -12,5 +10,3 @@ async function main(args) {
     },
   }
 }
-
-export { main }

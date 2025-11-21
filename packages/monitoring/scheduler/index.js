@@ -1,4 +1,4 @@
-async function main(args) {
+export async function main(event, context) {
   const now = new Date()
   const minute = now.getMinutes()
   const hour = now.getHours()
@@ -73,5 +73,3 @@ async function invokeFunction(functionName) {
     return { function: functionName, status: 'error', error: error.message }
   }
 }
-
-export { main }

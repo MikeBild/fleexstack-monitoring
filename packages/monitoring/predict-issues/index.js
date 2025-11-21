@@ -1,7 +1,5 @@
-async function main(args) {
+export async function main(event, context) {
   const predictions = []
-
-  // TODO: Query database for trend analysis
 
   return {
     body: {
@@ -11,5 +9,3 @@ async function main(args) {
     },
   }
 }
-
-export { main }
