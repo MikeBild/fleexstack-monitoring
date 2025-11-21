@@ -19,7 +19,7 @@ packages:
         main: index.js
         limits:
           timeout: 60000
-          memory: 256
+          memory: 128
         triggers:
           - name: collect-logs-trigger
             sourceType: scheduler
@@ -31,7 +31,7 @@ packages:
         main: index.js
         limits:
           timeout: 120000
-          memory: 512
+          memory: 256
         triggers:
           - name: analyze-logs-trigger
             sourceType: scheduler
@@ -43,7 +43,7 @@ packages:
         main: index.js
         limits:
           timeout: 60000
-          memory: 256
+          memory: 128
         triggers:
           - name: detect-issues-trigger
             sourceType: scheduler
@@ -55,7 +55,7 @@ packages:
         main: index.js
         limits:
           timeout: 120000
-          memory: 512
+          memory: 256
         triggers:
           - name: predict-issues-trigger
             sourceType: scheduler
@@ -67,7 +67,7 @@ packages:
         main: index.js
         limits:
           timeout: 60000
-          memory: 256
+          memory: 128
         triggers:
           - name: send-digest-trigger
             sourceType: scheduler
