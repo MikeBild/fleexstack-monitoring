@@ -1,4 +1,3 @@
-targetNamespace: fleexstack-monitoring
 parameters:
   DATABASE_URL: ${DATABASE_URL}
   GENAI_AGENT_URL: ${GENAI_AGENT_URL}
