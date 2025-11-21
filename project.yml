@@ -16,7 +16,7 @@ packages:
     functions:
       - name: scheduler
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 60000
           memory: 128
@@ -28,42 +28,42 @@ packages:
 
       - name: collect-logs
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 60000
           memory: 128
 
       - name: analyze-logs
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 120000
           memory: 256
 
       - name: detect-issues
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 60000
           memory: 128
 
       - name: predict-issues
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 120000
           memory: 256
 
       - name: send-digest
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 60000
           memory: 128
 
       - name: cleanup-data
         runtime: nodejs:18
-        main: index.js
+        main: main
         limits:
           timeout: 120000
           memory: 256
