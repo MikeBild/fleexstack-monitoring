@@ -9,6 +9,11 @@ on:
         description: 'Specific function to deploy (leave empty for all)'
         required: false
         type: string
+      clean_deploy:
+        description: 'Delete and recreate namespace (clean deployment)'
+        required: false
+        type: boolean
+        default: false
 
 env:
   NAMESPACE: fleexstack-monitoring
@@ -30,21 +35,29 @@ jobs:
       - name: Install serverless plugin
         run: doctl serverless install
 
-      - name: Delete existing namespace
+      - name: Delete existing namespace (clean deploy)
+        if: ${{ github.event.inputs.clean_deploy == 'true' }}
         run: |
           echo "Deleting namespace ${{ env.NAMESPACE }} if exists..."
           if doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}"; then
-            NS_ID=$(doctl serverless namespaces list --format Namespace --no-header | grep -m1 "")
             doctl serverless namespaces delete ${{ env.NAMESPACE }} --force || true
             echo "Waiting for namespace deletion..."
             sleep 10
           fi
 
-      - name: Create namespace
+      - name: Create namespace (clean deploy)
+        if: ${{ github.event.inputs.clean_deploy == 'true' }}
         run: |
           echo "Creating namespace ${{ env.NAMESPACE }}"
           doctl serverless namespaces create --label ${{ env.NAMESPACE }} --region fra1
-          echo "Connecting to namespace"
+
+      - name: Connect to namespace
+        run: |
+          if ! doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}"; then
+            echo "Creating namespace ${{ env.NAMESPACE }}"
+            doctl serverless namespaces create --label ${{ env.NAMESPACE }} --region fra1
+          fi
+          echo "Connecting to namespace ${{ env.NAMESPACE }}"
           doctl serverless connect ${{ env.NAMESPACE }}
 
       - name: Deploy functions
