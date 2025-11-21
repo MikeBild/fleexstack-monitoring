@@ -42,29 +42,27 @@ export async function main(event, context) {
 async function invokeFunction(functionName) {
   const namespace = process.env.__OW_NAMESPACE
   const apiHost = process.env.__OW_API_HOST
-  const apiKey = process.env.__OW_API_KEY
 
-  if (!apiHost || !apiKey) {
-    console.log(`Skipping ${functionName} (no API credentials)`)
-    return { function: functionName, status: 'skipped', reason: 'no credentials' }
+  if (!apiHost || !namespace) {
+    console.log(`[scheduler] Skipping ${functionName} (no API host/namespace)`)
+    return { function: functionName, status: 'skipped', reason: 'no host/namespace' }
   }
 
-  const url = `${apiHost}/api/v1/namespaces/${namespace}/actions/monitoring/${functionName}?blocking=false`
+  const url = `${apiHost}/api/v1/web/${namespace}/monitoring/${functionName}`
 
   try {
+    console.log(`[scheduler] Invoking ${functionName} via ${url}`)
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: '{}',
     })
 
-    console.log(`Invoked ${functionName}: ${response.status}`)
-    return { function: functionName, status: response.status }
+    const result = await response.json().catch(() => ({}))
+    console.log(`[scheduler] ${functionName}: ${response.status}`, JSON.stringify(result))
+    return { function: functionName, status: response.status, result }
   } catch (error) {
-    console.error(`Failed to invoke ${functionName}:`, error.message)
+    console.error(`[scheduler] Failed ${functionName}:`, error.message)
     return { function: functionName, status: 'error', error: error.message }
   }
 }
