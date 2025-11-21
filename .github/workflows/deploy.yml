@@ -33,7 +33,7 @@ jobs:
       - name: Connect to namespace
         run: |
           doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}" || \
-            doctl serverless namespaces create ${{ env.NAMESPACE }} --region fra1
+            doctl serverless namespaces create --label ${{ env.NAMESPACE }} --region fra1
           doctl serverless connect ${{ env.NAMESPACE }}
 
       - name: Deploy functions
