@@ -31,8 +31,9 @@ export async function main(event, context) {
           throw new Error(`HTTP ${response.status}`)
         }
 
-        const logs = await response.json()
-        console.log(`[collect-logs] ${source.name}: collected ${logs.length} logs`)
+        const data = await response.json()
+        const logs = Array.isArray(data) ? data : (data.logs || [])
+        console.log(`[collect-logs] ${source.name}: response type=${typeof data}, isArray=${Array.isArray(data)}, collected ${logs.length} logs`)
 
         results.push({
           source: source.name,
