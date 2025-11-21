@@ -14,17 +14,24 @@ packages:
       BLUE_HOST: ${BLUE_HOST}
       GREEN_HOST: ${GREEN_HOST}
     functions:
-      - name: collect-logs
+      - name: scheduler
         runtime: nodejs:18
         main: index.js
         limits:
           timeout: 60000
           memory: 128
         triggers:
-          - name: collect-logs-trigger
+          - name: scheduler-trigger
             sourceType: scheduler
             sourceDetails:
-              cron: "5 * * * *"
+              cron: "* * * * *"
+
+      - name: collect-logs
+        runtime: nodejs:18
+        main: index.js
+        limits:
+          timeout: 60000
+          memory: 128
 
       - name: analyze-logs
         runtime: nodejs:18
@@ -32,11 +39,6 @@ packages:
         limits:
           timeout: 120000
           memory: 256
-        triggers:
-          - name: analyze-logs-trigger
-            sourceType: scheduler
-            sourceDetails:
-              cron: "15 * * * *"
 
       - name: detect-issues
         runtime: nodejs:18
@@ -44,11 +46,6 @@ packages:
         limits:
           timeout: 60000
           memory: 128
-        triggers:
-          - name: detect-issues-trigger
-            sourceType: scheduler
-            sourceDetails:
-              cron: "20 * * * *"
 
       - name: predict-issues
         runtime: nodejs:18
@@ -56,11 +53,6 @@ packages:
         limits:
           timeout: 120000
           memory: 256
-        triggers:
-          - name: predict-issues-trigger
-            sourceType: scheduler
-            sourceDetails:
-              cron: "30 * * * *"
 
       - name: send-digest
         runtime: nodejs:18
@@ -68,11 +60,6 @@ packages:
         limits:
           timeout: 60000
           memory: 128
-        triggers:
-          - name: send-digest-trigger
-            sourceType: scheduler
-            sourceDetails:
-              cron: "0 8 * * *"
 
       - name: cleanup-data
         runtime: nodejs:18
@@ -80,8 +67,3 @@ packages:
         limits:
           timeout: 120000
           memory: 256
-        triggers:
-          - name: cleanup-data-trigger
-            sourceType: scheduler
-            sourceDetails:
-              cron: "0 2 * * *"
