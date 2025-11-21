@@ -12,7 +12,7 @@ packages:
     environment:
       DATABASE_URL: ${DATABASE_URL}
       GENAI_AGENT_URL: ${GENAI_AGENT_URL}
-          BLUE_HOST: ${BLUE_HOST}
+      BLUE_HOST: ${BLUE_HOST}
       GREEN_HOST: ${GREEN_HOST}
     functions:
       - name: collect-logs
