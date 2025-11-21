@@ -23,8 +23,9 @@ packages:
           memory: 256
         triggers:
           - name: every-5-minutes
-            type: scheduler
-            cron: "*/5 * * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "*/5 * * * *"
 
       - name: analyze-logs
         runtime: nodejs:18
@@ -34,8 +35,9 @@ packages:
           memory: 512
         triggers:
           - name: every-15-minutes
-            type: scheduler
-            cron: "*/15 * * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "*/15 * * * *"
 
       - name: detect-issues
         runtime: nodejs:18
@@ -45,8 +47,9 @@ packages:
           memory: 256
         triggers:
           - name: every-15-minutes
-            type: scheduler
-            cron: "5,20,35,50 * * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "5,20,35,50 * * * *"
 
       - name: predict-issues
         runtime: nodejs:18
@@ -56,8 +59,9 @@ packages:
           memory: 512
         triggers:
           - name: hourly
-            type: scheduler
-            cron: "0 * * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "0 * * * *"
 
       - name: send-digest
         runtime: nodejs:18
@@ -67,8 +71,9 @@ packages:
           memory: 256
         triggers:
           - name: daily-8am
-            type: scheduler
-            cron: "0 8 * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "0 8 * * *"
 
       - name: cleanup-data
         runtime: nodejs:18
@@ -78,5 +83,6 @@ packages:
           memory: 256
         triggers:
           - name: daily-2am
-            type: scheduler
-            cron: "0 2 * * *"
+            sourceType: scheduler
+            sourceDetails:
+              cron: "0 2 * * *"
