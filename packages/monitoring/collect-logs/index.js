@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -9,7 +9,7 @@ async function main(args) {
   ]
 
   const results = []
-  const since = new Date(Date.now() - 5 * 60 * 1000) // Last 5 minutes
+  const since = new Date(Date.now() - 5 * 60 * 1000)
 
   for (const source of sources) {
     if (!source.host) {
@@ -18,7 +18,6 @@ async function main(args) {
     }
 
     try {
-      // Fetch logs from application endpoint
       const response = await fetch(`http://${source.host}:3000/api/logs?since=${since.toISOString()}`, {
         timeout: 10000,
       })
@@ -29,7 +28,6 @@ async function main(args) {
 
       const logs = await response.json()
 
-      // Store in database
       if (logs.length > 0) {
         const stored = await prisma.logEntry.createMany({
           data: logs.map(log => ({
@@ -74,4 +72,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }

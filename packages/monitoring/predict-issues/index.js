@@ -1,9 +1,8 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main(args) {
-  // Get logs from last hour for trend analysis
   const since = new Date(Date.now() - 60 * 60 * 1000)
 
   const logs = await prisma.logEntry.findMany({
@@ -18,7 +17,6 @@ async function main(args) {
 
   const predictions = []
 
-  // Analyze error trends
   const errorsByInterval = {}
   for (const log of logs) {
     if (log.level === 'error' || log.level === 'fatal') {
@@ -43,7 +41,6 @@ async function main(args) {
     }
   }
 
-  // Store predictions as issues
   for (const prediction of predictions) {
     await prisma.logIssue.create({
       data: {
@@ -66,4 +63,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }

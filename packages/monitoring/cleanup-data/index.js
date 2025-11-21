@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -9,14 +9,12 @@ async function main(args) {
   const logCutoff = new Date(Date.now() - logRetentionDays * 24 * 60 * 60 * 1000)
   const issueCutoff = new Date(Date.now() - issueRetentionDays * 24 * 60 * 60 * 1000)
 
-  // Delete old logs
   const deletedLogs = await prisma.logEntry.deleteMany({
     where: {
       timestamp: { lt: logCutoff },
     },
   })
 
-  // Delete old resolved issues
   const deletedIssues = await prisma.logIssue.deleteMany({
     where: {
       status: 'resolved',
@@ -39,4 +37,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }

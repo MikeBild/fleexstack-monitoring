@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -6,7 +6,6 @@ async function main(args) {
   const issues = []
   const since = new Date(Date.now() - 5 * 60 * 1000)
 
-  // Check error rate
   const [errors, total] = await Promise.all([
     prisma.logEntry.count({
       where: { level: { in: ['error', 'fatal'] }, timestamp: { gte: since } },
@@ -28,7 +27,6 @@ async function main(args) {
     })
   }
 
-  // Check for repeated errors
   const repeatedErrors = await prisma.logEntry.groupBy({
     by: ['message'],
     where: {
@@ -49,7 +47,6 @@ async function main(args) {
     })
   }
 
-  // Store issues
   for (const issue of issues) {
     await prisma.logIssue.create({
       data: {
@@ -72,4 +69,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }

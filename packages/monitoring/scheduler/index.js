@@ -1,5 +1,5 @@
-const https = require('https')
-const http = require('http')
+import https from 'https'
+import http from 'http'
 
 async function main(args) {
   const now = new Date()
@@ -88,4 +88,4 @@ async function invokeFunction(functionName) {
   })
 }
 
-exports.main = main
+export { main }

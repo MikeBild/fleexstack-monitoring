@@ -1,9 +1,8 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main(args) {
-  // Get unanalyzed logs
   const logs = await prisma.logEntry.findMany({
     where: { analyzed: false },
     take: 100,
@@ -17,10 +16,8 @@ async function main(args) {
 
   let issuesDetected = 0
 
-  // Call GenAI for analysis
   if (process.env.GENAI_AGENT_URL) {
     try {
-      // Call GenAI for analysis
       const response = await fetch(process.env.GENAI_AGENT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,7 +41,6 @@ async function main(args) {
       if (response.ok) {
         const analysis = await response.json()
 
-        // Store detected issues
         if (analysis.issuesDetected && Array.isArray(analysis.issuesDetected)) {
           for (const issue of analysis.issuesDetected) {
             await prisma.logIssue.create({
@@ -69,7 +65,6 @@ async function main(args) {
     }
   }
 
-  // Mark logs as analyzed
   await prisma.logEntry.updateMany({
     where: { id: { in: logs.map(l => l.id) } },
     data: { analyzed: true },
@@ -86,4 +81,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }

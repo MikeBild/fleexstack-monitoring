@@ -1,11 +1,10 @@
-const { PrismaClient } = require('@prisma/client')
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main(args) {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-  // Gather statistics
   const [totalLogs, errorLogs, issues, resolvedIssues] = await Promise.all([
     prisma.logEntry.count({ where: { timestamp: { gte: since } } }),
     prisma.logEntry.count({
@@ -21,7 +20,6 @@ async function main(args) {
 
   const errorRate = totalLogs > 0 ? ((errorLogs / totalLogs) * 100).toFixed(2) : 0
 
-  // Create digest content
   const digest = {
     date: new Date().toISOString().split('T')[0],
     summary: {
@@ -33,8 +31,6 @@ async function main(args) {
     },
   }
 
-  // TODO: Send digest via email or GitHub issue
-  // For now, just log it
   console.log('Daily Digest:', JSON.stringify(digest, null, 2))
 
   await prisma.$disconnect()
@@ -47,4 +43,4 @@ async function main(args) {
   }
 }
 
-exports.main = main
+export { main }
