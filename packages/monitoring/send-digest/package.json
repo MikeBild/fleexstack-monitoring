@@ -1,0 +1,8 @@
+{
+  "name": "send-digest",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  }
+}

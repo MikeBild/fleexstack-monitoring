@@ -1,0 +1,78 @@
+targetNamespace: fleexstack-monitoring
+parameters:
+  DATABASE_URL: ${DATABASE_URL}
+  GENAI_AGENT_URL: ${GENAI_AGENT_URL}
+  GENAI_ENABLED: ${GENAI_ENABLED}
+  BLUE_HOST: ${BLUE_HOST}
+  GREEN_HOST: ${GREEN_HOST}
+  GITHUB_ALERTS_REPO: ${GITHUB_ALERTS_REPO}
+  GITHUB_TOKEN: ${GITHUB_TOKEN}
+
+packages:
+  - name: monitoring
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      GENAI_AGENT_URL: ${GENAI_AGENT_URL}
+      GENAI_ENABLED: ${GENAI_ENABLED}
+      BLUE_HOST: ${BLUE_HOST}
+      GREEN_HOST: ${GREEN_HOST}
+    functions:
+      - name: collect-logs
+        runtime: nodejs:18
+        main: index.js
+        timeout: 60000
+        memory: 256
+        triggers:
+          - name: every-5-minutes
+            type: scheduler
+            cron: "*/5 * * * *"
+
+      - name: analyze-logs
+        runtime: nodejs:18
+        main: index.js
+        timeout: 120000
+        memory: 512
+        triggers:
+          - name: every-15-minutes
+            type: scheduler
+            cron: "*/15 * * * *"
+
+      - name: detect-issues
+        runtime: nodejs:18
+        main: index.js
+        timeout: 60000
+        memory: 256
+        triggers:
+          - name: every-15-minutes
+            type: scheduler
+            cron: "5,20,35,50 * * * *"
+
+      - name: predict-issues
+        runtime: nodejs:18
+        main: index.js
+        timeout: 120000
+        memory: 512
+        triggers:
+          - name: hourly
+            type: scheduler
+            cron: "0 * * * *"
+
+      - name: send-digest
+        runtime: nodejs:18
+        main: index.js
+        timeout: 60000
+        memory: 256
+        triggers:
+          - name: daily-8am
+            type: scheduler
+            cron: "0 8 * * *"
+
+      - name: cleanup-data
+        runtime: nodejs:18
+        main: index.js
+        timeout: 120000
+        memory: 256
+        triggers:
+          - name: daily-2am
+            type: scheduler
+            cron: "0 2 * * *"

@@ -1,0 +1,64 @@
+name: Deploy DO Functions
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      function:
+        description: 'Specific function to deploy (leave empty for all)'
+        required: false
+        type: string
+
+env:
+  NAMESPACE: fleexstack-monitoring
+
+jobs:
+  deploy:
+    name: Deploy Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_API_TOKEN }}
+
+      - name: Install serverless plugin
+        run: doctl serverless install
+
+      - name: Connect to namespace
+        run: |
+          doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}" || \
+            doctl serverless namespaces create ${{ env.NAMESPACE }} --region fra1
+          doctl serverless connect ${{ env.NAMESPACE }}
+
+      - name: Deploy functions
+        run: |
+          if [ -n "${{ github.event.inputs.function }}" ]; then
+            echo "Deploying: ${{ github.event.inputs.function }}"
+            doctl serverless deploy . --include "packages/monitoring/${{ github.event.inputs.function }}"
+          else
+            echo "Deploying all functions"
+            doctl serverless deploy .
+          fi
+
+      - name: Verify deployment
+        run: doctl serverless functions list
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "## DO Functions Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | Schedule |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| collect-logs | */5 * * * * |" >> $GITHUB_STEP_SUMMARY
+          echo "| analyze-logs | */15 * * * * |" >> $GITHUB_STEP_SUMMARY
+          echo "| detect-issues | 5,20,35,50 * * * * |" >> $GITHUB_STEP_SUMMARY
+          echo "| predict-issues | 0 * * * * |" >> $GITHUB_STEP_SUMMARY
+          echo "| send-digest | 0 8 * * * |" >> $GITHUB_STEP_SUMMARY
+          echo "| cleanup-data | 0 2 * * * |" >> $GITHUB_STEP_SUMMARY
