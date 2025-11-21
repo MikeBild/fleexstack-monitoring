@@ -1,6 +1,3 @@
-import https from 'https'
-import http from 'http'
-
 async function main(args) {
   const now = new Date()
   const minute = now.getMinutes()
@@ -53,39 +50,28 @@ async function invokeFunction(functionName) {
   const apiKey = process.env.__OW_API_KEY
 
   if (!apiHost || !apiKey) {
-    console.log(`Invoking ${functionName} (local mode)`)
-    return { function: functionName, status: 'skipped', reason: 'local mode' }
+    console.log(`Skipping ${functionName} (no API credentials)`)
+    return { function: functionName, status: 'skipped', reason: 'no credentials' }
   }
 
   const url = `${apiHost}/api/v1/namespaces/${namespace}/actions/monitoring/${functionName}?blocking=false`
 
-  return new Promise((resolve) => {
-    const protocol = url.startsWith('https') ? https : http
-    const auth = Buffer.from(apiKey).toString('base64')
-
-    const req = protocol.request(url, {
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${auth}`,
+        'Authorization': `Basic ${Buffer.from(apiKey).toString('base64')}`,
       },
-    }, (res) => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        console.log(`Invoked ${functionName}: ${res.statusCode}`)
-        resolve({ function: functionName, status: res.statusCode })
-      })
+      body: '{}',
     })
 
-    req.on('error', (err) => {
-      console.error(`Failed to invoke ${functionName}:`, err.message)
-      resolve({ function: functionName, status: 'error', error: err.message })
-    })
-
-    req.write('{}')
-    req.end()
-  })
+    console.log(`Invoked ${functionName}: ${response.status}`)
+    return { function: functionName, status: response.status }
+  } catch (error) {
+    console.error(`Failed to invoke ${functionName}:`, error.message)
+    return { function: functionName, status: 'error', error: error.message }
+  }
 }
 
 export { main }
