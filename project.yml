@@ -2,19 +2,17 @@ targetNamespace: fleexstack-monitoring
 parameters:
   DATABASE_URL: ${DATABASE_URL}
   GENAI_AGENT_URL: ${GENAI_AGENT_URL}
-  GENAI_ENABLED: ${GENAI_ENABLED}
   BLUE_HOST: ${BLUE_HOST}
   GREEN_HOST: ${GREEN_HOST}
-  GITHUB_ALERTS_REPO: ${GITHUB_ALERTS_REPO}
-  GITHUB_TOKEN: ${GITHUB_TOKEN}
+  ALERTS_REPO: ${ALERTS_REPO}
+  GH_TOKEN: ${GH_TOKEN}
 
 packages:
   - name: monitoring
     environment:
       DATABASE_URL: ${DATABASE_URL}
       GENAI_AGENT_URL: ${GENAI_AGENT_URL}
-      GENAI_ENABLED: ${GENAI_ENABLED}
-      BLUE_HOST: ${BLUE_HOST}
+          BLUE_HOST: ${BLUE_HOST}
       GREEN_HOST: ${GREEN_HOST}
     functions:
       - name: collect-logs

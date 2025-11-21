@@ -17,8 +17,8 @@ async function main(args) {
 
   let issuesDetected = 0
 
-  // Check if GenAI is enabled
-  if (process.env.GENAI_ENABLED === 'true' && process.env.GENAI_AGENT_URL) {
+  // Call GenAI for analysis
+  if (process.env.GENAI_AGENT_URL) {
     try {
       // Call GenAI for analysis
       const response = await fetch(process.env.GENAI_AGENT_URL, {

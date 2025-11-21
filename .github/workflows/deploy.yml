@@ -37,6 +37,13 @@ jobs:
           doctl serverless connect ${{ env.NAMESPACE }}
 
       - name: Deploy functions
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GENAI_AGENT_URL: ${{ vars.GENAI_AGENT_URL }}
+          BLUE_HOST: ${{ vars.BLUE_HOST }}
+          GREEN_HOST: ${{ vars.GREEN_HOST }}
+          ALERTS_REPO: ${{ vars.ALERTS_REPO }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           if [ -n "${{ github.event.inputs.function }}" ]; then
             echo "Deploying: ${{ github.event.inputs.function }}"
