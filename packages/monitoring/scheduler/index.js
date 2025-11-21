@@ -3,37 +3,38 @@ export async function main(event, context) {
   const minute = now.getMinutes()
   const hour = now.getHours()
 
+  console.log(`[scheduler] Started at ${now.toISOString()}`)
+  console.log(`[scheduler] Time: ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} UTC`)
+  console.log(`[scheduler] Event:`, JSON.stringify(event || {}))
+  console.log(`[scheduler] Namespace: ${process.env.__OW_NAMESPACE || 'not set'}`)
+  console.log(`[scheduler] API Host: ${process.env.__OW_API_HOST ? 'configured' : 'not set'}`)
+  console.log(`[scheduler] API Key: ${process.env.__OW_API_KEY ? 'configured' : 'not set'}`)
+
+  const scheduled = []
+  if (minute % 5 === 0) scheduled.push('collect-logs')
+  if (minute % 15 === 0) scheduled.push('analyze-logs')
+  if ([5, 20, 35, 50].includes(minute)) scheduled.push('detect-issues')
+  if (minute === 0) scheduled.push('predict-issues')
+  if (hour === 8 && minute === 0) scheduled.push('send-digest')
+  if (hour === 2 && minute === 0) scheduled.push('cleanup-data')
+
+  console.log(`[scheduler] Functions to invoke: ${scheduled.length > 0 ? scheduled.join(', ') : 'none'}`)
+
   const results = []
-
-  if (minute % 5 === 0) {
-    results.push(await invokeFunction('collect-logs'))
+  for (const fn of scheduled) {
+    const result = await invokeFunction(fn)
+    results.push(result)
   }
 
-  if (minute % 15 === 0) {
-    results.push(await invokeFunction('analyze-logs'))
-  }
-
-  if ([5, 20, 35, 50].includes(minute)) {
-    results.push(await invokeFunction('detect-issues'))
-  }
-
-  if (minute === 0) {
-    results.push(await invokeFunction('predict-issues'))
-  }
-
-  if (hour === 8 && minute === 0) {
-    results.push(await invokeFunction('send-digest'))
-  }
-
-  if (hour === 2 && minute === 0) {
-    results.push(await invokeFunction('cleanup-data'))
-  }
+  console.log(`[scheduler] Results:`, JSON.stringify(results))
+  console.log(`[scheduler] Completed successfully`)
 
   return {
     body: {
       success: true,
       timestamp: now.toISOString(),
-      invoked: results.filter(r => r !== null),
+      scheduled,
+      invoked: results,
     },
   }
 }
