@@ -30,19 +30,22 @@ jobs:
       - name: Install serverless plugin
         run: doctl serverless install
 
-      - name: Connect to namespace
+      - name: Delete existing namespace
         run: |
-          if ! doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}"; then
-            echo "Creating namespace ${{ env.NAMESPACE }}"
-            doctl serverless namespaces create --label ${{ env.NAMESPACE }} --region fra1
+          echo "Deleting namespace ${{ env.NAMESPACE }} if exists..."
+          if doctl serverless namespaces list | grep -q "${{ env.NAMESPACE }}"; then
+            NS_ID=$(doctl serverless namespaces list --format Namespace --no-header | grep -m1 "")
+            doctl serverless namespaces delete ${{ env.NAMESPACE }} --force || true
+            echo "Waiting for namespace deletion..."
+            sleep 10
           fi
-          echo "Connecting to namespace ${{ env.NAMESPACE }}"
-          doctl serverless connect ${{ env.NAMESPACE }}
 
-      - name: Clean up everything
+      - name: Create namespace
         run: |
-          echo "Removing all functions and triggers..."
-          doctl serverless undeploy --all || true
+          echo "Creating namespace ${{ env.NAMESPACE }}"
+          doctl serverless namespaces create --label ${{ env.NAMESPACE }} --region fra1
+          echo "Connecting to namespace"
+          doctl serverless connect ${{ env.NAMESPACE }}
 
       - name: Deploy functions
         env:
