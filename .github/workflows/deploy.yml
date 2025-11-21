@@ -39,10 +39,10 @@ jobs:
           echo "Connecting to namespace ${{ env.NAMESPACE }}"
           doctl serverless connect ${{ env.NAMESPACE }}
 
-      - name: Clean up old triggers
+      - name: Clean up everything
         run: |
-          echo "Cleaning up old triggers..."
-          doctl serverless undeploy monitoring --triggers || true
+          echo "Removing all functions and triggers..."
+          doctl serverless undeploy --all || true
 
       - name: Deploy functions
         env:
