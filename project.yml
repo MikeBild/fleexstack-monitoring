@@ -18,8 +18,9 @@ packages:
       - name: collect-logs
         runtime: nodejs:18
         main: index.js
-        timeout: 60000
-        memory: 256
+        limits:
+          timeout: 60000
+          memory: 256
         triggers:
           - name: every-5-minutes
             type: scheduler
@@ -28,8 +29,9 @@ packages:
       - name: analyze-logs
         runtime: nodejs:18
         main: index.js
-        timeout: 120000
-        memory: 512
+        limits:
+          timeout: 120000
+          memory: 512
         triggers:
           - name: every-15-minutes
             type: scheduler
@@ -38,8 +40,9 @@ packages:
       - name: detect-issues
         runtime: nodejs:18
         main: index.js
-        timeout: 60000
-        memory: 256
+        limits:
+          timeout: 60000
+          memory: 256
         triggers:
           - name: every-15-minutes
             type: scheduler
@@ -48,8 +51,9 @@ packages:
       - name: predict-issues
         runtime: nodejs:18
         main: index.js
-        timeout: 120000
-        memory: 512
+        limits:
+          timeout: 120000
+          memory: 512
         triggers:
           - name: hourly
             type: scheduler
@@ -58,8 +62,9 @@ packages:
       - name: send-digest
         runtime: nodejs:18
         main: index.js
-        timeout: 60000
-        memory: 256
+        limits:
+          timeout: 60000
+          memory: 256
         triggers:
           - name: daily-8am
             type: scheduler
@@ -68,8 +73,9 @@ packages:
       - name: cleanup-data
         runtime: nodejs:18
         main: index.js
-        timeout: 120000
-        memory: 256
+        limits:
+          timeout: 120000
+          memory: 256
         triggers:
           - name: daily-2am
             type: scheduler
