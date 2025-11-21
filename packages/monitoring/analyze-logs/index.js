@@ -1,4 +1,4 @@
-export async function main(event, context) {
+async function main(event, context) {
   let issuesDetected = 0
 
   if (process.env.GENAI_AGENT_URL) {
@@ -33,3 +33,5 @@ export async function main(event, context) {
     },
   }
 }
+
+exports.main = main

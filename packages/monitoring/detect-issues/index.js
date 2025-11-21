@@ -1,4 +1,4 @@
-export async function main(event, context) {
+async function main(event, context) {
   const issues = []
   const errorRate = 0
 
@@ -10,3 +10,5 @@ export async function main(event, context) {
     },
   }
 }
+
+exports.main = main

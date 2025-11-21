@@ -1,4 +1,4 @@
-export async function main(event, context) {
+async function main(event, context) {
   const predictions = []
 
   return {
@@ -9,3 +9,5 @@ export async function main(event, context) {
     },
   }
 }
+
+exports.main = main

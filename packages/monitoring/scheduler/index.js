@@ -1,36 +1,30 @@
-export async function main(event, context) {
+async function main(event, context) {
   const now = new Date()
   const minute = now.getMinutes()
   const hour = now.getHours()
 
   const results = []
 
-  // collect-logs: every 5 minutes
   if (minute % 5 === 0) {
     results.push(await invokeFunction('collect-logs'))
   }
 
-  // analyze-logs: every 15 minutes
   if (minute % 15 === 0) {
     results.push(await invokeFunction('analyze-logs'))
   }
 
-  // detect-issues: at minutes 5, 20, 35, 50
   if ([5, 20, 35, 50].includes(minute)) {
     results.push(await invokeFunction('detect-issues'))
   }
 
-  // predict-issues: hourly at minute 0
   if (minute === 0) {
     results.push(await invokeFunction('predict-issues'))
   }
 
-  // send-digest: daily at 8:00 AM
   if (hour === 8 && minute === 0) {
     results.push(await invokeFunction('send-digest'))
   }
 
-  // cleanup-data: daily at 2:00 AM
   if (hour === 2 && minute === 0) {
     results.push(await invokeFunction('cleanup-data'))
   }
@@ -73,3 +67,5 @@ async function invokeFunction(functionName) {
     return { function: functionName, status: 'error', error: error.message }
   }
 }
+
+exports.main = main
