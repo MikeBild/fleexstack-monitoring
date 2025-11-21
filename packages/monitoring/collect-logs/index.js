@@ -1,8 +1,17 @@
+import pg from 'pg'
+import crypto from 'crypto'
+
+const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+})
+
 export async function main(event, context) {
   console.log('[collect-logs] Started')
   console.log('[collect-logs] BLUE_HOST:', process.env.BLUE_HOST || 'not set')
   console.log('[collect-logs] GREEN_HOST:', process.env.GREEN_HOST || 'not set')
 
+  const client = await pool.connect()
   try {
     const sources = [
       { name: 'blue', host: process.env.BLUE_HOST },
@@ -32,13 +41,38 @@ export async function main(event, context) {
         }
 
         const data = await response.json()
-        const logs = Array.isArray(data) ? data : (data.logs || [])
-        console.log(`[collect-logs] ${source.name}: response type=${typeof data}, isArray=${Array.isArray(data)}, collected ${logs.length} logs`)
+        const logs = Array.isArray(data) ? data : data.logs || []
+        console.log(`[collect-logs] ${source.name}: collected ${logs.length} logs`)
 
+        let stored = 0
+        for (const log of logs) {
+          try {
+            await client.query(
+              `INSERT INTO "LogEntry" (id, timestamp, level, message, source, metadata, analyzed, "createdAt")
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               ON CONFLICT DO NOTHING`,
+              [
+                crypto.randomUUID(),
+                new Date(log.timestamp || Date.now()),
+                log.level || 'info',
+                log.message || '',
+                source.name,
+                JSON.stringify(log.metadata || {}),
+                false,
+                new Date(),
+              ]
+            )
+            stored++
+          } catch (err) {
+            console.error(`[collect-logs] Failed to store log: ${err.message}`)
+          }
+        }
+
+        console.log(`[collect-logs] ${source.name}: stored ${stored} logs`)
         results.push({
           source: source.name,
           collected: logs.length,
-          stored: 0,
+          stored,
         })
       } catch (error) {
         console.error(`[collect-logs] ${source.name}: ${error.message}`)
@@ -66,5 +100,7 @@ export async function main(event, context) {
         error: error.message,
       },
     }
+  } finally {
+    client.release()
   }
 }
