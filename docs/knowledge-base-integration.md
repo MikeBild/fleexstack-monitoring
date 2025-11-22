@@ -451,23 +451,30 @@ packages:
     functions:
       - name: ai-agent-get-runbook
         runtime: nodejs:18
+        main: main
         web: true
-        include:
-          - knowledge/**
+        limits:
+          timeout: 30000
+          memory: 128
 
       - name: ai-agent-search-incidents
         runtime: nodejs:18
+        main: main
         web: true
-        environment:
-          DATABASE_URL: ${DATABASE_URL}
+        limits:
+          timeout: 30000
+          memory: 128
 
       - name: ai-agent-search-github-issues
         runtime: nodejs:18
+        main: main
         web: true
-        environment:
-          ALERTS_REPO: ${ALERTS_REPO}
-          GH_TOKEN: ${GH_TOKEN}
+        limits:
+          timeout: 30000
+          memory: 128
 ```
+
+> **Note**: DO Functions doesn't support the `include` key. Knowledge files must be placed directly in the function directory: `packages/monitoring/ai-agent-get-runbook/knowledge/`
 
 ### Security Note
 
@@ -611,72 +618,49 @@ Adding output schemas helps agent understand responses for multi-function routin
 }
 ```
 
-### Via API
+### Via doctl CLI (Recommended)
 
 ```bash
-# Get your agent UUID from Control Panel or API
-AGENT_UUID="your-agent-uuid"
+# Get agent UUID and FaaS namespace
+AGENT_UUID=$(doctl genai agent list -o json | jq -r '.[0].uuid')
+FAAS_NS=$(doctl serverless namespaces list -o json | jq -r '.[0].namespace')
 
-# Add ai-agent-get-runbook route
-curl -X POST "https://api.digitalocean.com/v2/gen-ai/agents/${AGENT_UUID}/functions" \
-  -H "Authorization: Bearer $DO_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": "monitoring",
-    "function_name": "ai-agent-get-runbook",
-    "instructions": "Retrieve remediation runbook for issue type",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "issue_type": { "type": "string", "description": "Issue type" }
-      },
-      "required": ["issue_type"]
-    }
-  }'
+# Add get_runbook route
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "get_runbook" \
+  --description "Retrieve remediation runbook for issue type" \
+  --faas-name "monitoring/ai-agent-get-runbook" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"issue_type","in":"query","schema":{"type":"string"},"required":true,"description":"Issue type: high-error-rate, memory-warning, connection-failure, repeated-error"}]}' \
+  --output-schema '{"properties":{"runbook":{"type":"string","description":"Markdown content of runbook"},"message":{"type":"string","description":"Error or not found message"}}}'
 
-# Add ai-agent-search-incidents route
-curl -X POST "https://api.digitalocean.com/v2/gen-ai/agents/${AGENT_UUID}/functions" \
-  -H "Authorization: Bearer $DO_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": "monitoring",
-    "function_name": "ai-agent-search-incidents",
-    "instructions": "Search past resolved incidents for similar patterns",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "keywords": { "type": "string", "description": "Search keywords" },
-        "limit": { "type": "number", "description": "Max results" }
-      },
-      "required": ["keywords"]
-    }
-  }'
+# Add search_incidents route
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "search_incidents" \
+  --description "Search past resolved incidents in database" \
+  --faas-name "monitoring/ai-agent-search-incidents" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Keywords to search in past incidents"},{"name":"limit","in":"query","schema":{"type":"number"},"required":false,"description":"Max results (default 5)"}]}' \
+  --output-schema '{"properties":{"incidents":{"type":"array","description":"Array of resolved incidents with type, title, rootCause, recommendation"}}}'
 
-# Add ai-agent-search-github-issues route
-curl -X POST "https://api.digitalocean.com/v2/gen-ai/agents/${AGENT_UUID}/functions" \
-  -H "Authorization: Bearer $DO_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "namespace": "monitoring",
-    "function_name": "ai-agent-search-github-issues",
-    "instructions": "Search closed GitHub issues for past resolutions and discussions",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "keywords": { "type": "string", "description": "Search keywords" },
-        "limit": { "type": "number", "description": "Max results" }
-      },
-      "required": ["keywords"]
-    }
-  }'
+# Add search_github_issues route
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "search_github_issues" \
+  --description "Search closed GitHub issues for resolutions" \
+  --faas-name "monitoring/ai-agent-search-github-issues" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Keywords to search in closed GitHub issues"},{"name":"limit","in":"query","schema":{"type":"number"},"required":false,"description":"Max results (default 5)"}]}' \
+  --output-schema '{"properties":{"issues":{"type":"array","description":"Array of GitHub issues with number, title, body, resolution, url"}}}'
 ```
 
 ### Verify Routes
 
 ```bash
-# List function routes
-curl "https://api.digitalocean.com/v2/gen-ai/agents/${AGENT_UUID}/functions" \
-  -H "Authorization: Bearer $DO_API_TOKEN"
+# List agent with function routes
+doctl genai agent get $AGENT_UUID -o json | jq '.[0].functions[] | {name, faas_name}'
 ```
 
 ---
