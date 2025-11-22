@@ -342,3 +342,5 @@ If approaching limits:
 
 - [Debugging Guide](./debugging.md) - Troubleshooting
 - [Developer Guide](./developers.md) - Implementation details
+- [Knowledge Base Integration](./knowledge-base-integration.md) - AI context setup
+- [E2E Integration](./e2e-integration.md) - CI/CD verification

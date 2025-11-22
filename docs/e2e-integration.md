@@ -148,3 +148,9 @@ curl -X POST "https://faas-fra1-xxx.doserverless.co/api/v1/web/xxx/monitoring/an
 ## Removing the Old notify-failure Job
 
 Once this integration is working, you can remove or simplify the `notify-failure` job in deploy-infrastructure.yml since issue creation is now handled by the monitoring function with AI-powered analysis.
+
+## See Also
+
+- [Knowledge Base Integration](./knowledge-base-integration.md) - Runbooks used by analyze-e2e-results
+- [Developer Guide](./developers.md) - Function implementation patterns
+- [Operator Guide](./operators.md) - Deployment and environment setup

@@ -381,3 +381,6 @@ node -e "import('./index.js').then(m => m.main({}).then(console.log))"
 
 - [Operator Guide](./operators.md) - Deployment and monitoring
 - [Debugging Guide](./debugging.md) - Troubleshooting
+- [Architecture](./architecture.md) - System diagrams and data flows
+- [Knowledge Base Integration](./knowledge-base-integration.md) - AI context functions
+- [E2E Integration](./e2e-integration.md) - analyze-e2e-results implementation

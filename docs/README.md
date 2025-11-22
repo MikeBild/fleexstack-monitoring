@@ -2,11 +2,28 @@
 
 Serverless log monitoring system using DigitalOcean Functions with AI-powered analysis.
 
-## Architecture
+## Quick Navigation by Role
+
+### Operators
+- [Quick Start](./quickstart.md) - Deploy in 5 minutes
+- [Operator Guide](./operators.md) - Deployment, monitoring, maintenance
+- [Debugging Guide](./debugging.md) - Troubleshooting DO Functions
+
+### Developers
+- [Developer Guide](./developers.md) - Implementation details, extending functions
+- [Architecture](./architecture.md) - System diagrams and data flows
+- [E2E Integration](./e2e-integration.md) - CI/CD verification setup
+
+### Advanced Features
+- [Knowledge Base Integration](./knowledge-base-integration.md) - AI context with runbooks
+- [Spaces Docs Sync](./auto/spaces-docs-sync.md) - Documentation sync workflow
+
+## Architecture Overview
 
 ```mermaid
 graph TB
-    subgraph "DigitalOcean Functions"
+    subgraph "Scheduled Functions"
+        SCH[scheduler<br/>Every 1 min]
         CL[collect-logs<br/>Every 5 min]
         AL[analyze-logs<br/>Every 15 min]
         DI[detect-issues<br/>Every 15 min]
@@ -24,35 +41,39 @@ graph TB
     subgraph "Storage & AI"
         DB[(PostgreSQL)]
         GenAI[DO GenAI Agent]
+        KB[Knowledge Base]
     end
+
+    SCH --> CL
+    SCH --> AL
+    SCH --> DI
+    SCH --> PI
+    SCH --> SD
+    SCH --> CD
+    SCH --> VB
 
     CL --> Blue
     CL --> Green
     CL --> DB
     AL --> DB
     AL --> GenAI
+    GenAI --> KB
     DI --> DB
     PI --> DB
     SD --> DB
     CD --> DB
 
+    style SCH fill:#ff9f43
     style CL fill:#4ecdc4
     style AL fill:#4ecdc4
     style DI fill:#4ecdc4
     style PI fill:#4ecdc4
     style SD fill:#4ecdc4
     style CD fill:#4ecdc4
+    style VB fill:#4ecdc4
     style GenAI fill:#e1f5ff
+    style KB fill:#a29bfe
 ```
-
-## Documentation by Audience
-
-| Document | Audience | Description |
-|----------|----------|-------------|
-| [Quick Start](./quickstart.md) | Everyone | Get up and running in 5 minutes |
-| [Developer Guide](./developers.md) | Developers | Implementation details, extending functions |
-| [Operator Guide](./operators.md) | Operators | Deployment, monitoring, maintenance |
-| [Debugging Guide](./debugging.md) | Operators/Developers | Troubleshooting DO Functions |
 
 ## Functions Overview
 
@@ -87,6 +108,17 @@ graph TB
 
 ## Quick Links
 
+### Setup & Configuration
 - [Environment Variables](./operators.md#environment-variables)
 - [Database Schema](./developers.md#database-schema)
+- [GenAI Integration](./developers.md#genai-integration)
+
+### Operations
+- [Manual Invocation](./operators.md#invoke-functions-manually)
+- [View Activations](./operators.md#view-activations)
 - [Common Issues](./debugging.md#common-issues)
+
+### Advanced
+- [Knowledge Base Setup](./knowledge-base-integration.md#quick-start-operators)
+- [E2E Verification](./e2e-integration.md#setup)
+- [Adding Detection Patterns](./developers.md#adding-issue-detection-patterns)

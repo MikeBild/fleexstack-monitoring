@@ -106,6 +106,12 @@ LIMIT 10;
 
 ## Next Steps
 
+### Essential
 - [Developer Guide](./developers.md) - Extend and customize functions
 - [Operator Guide](./operators.md) - Production deployment and monitoring
 - [Debugging Guide](./debugging.md) - Troubleshoot issues
+
+### Advanced Features
+- [Knowledge Base Integration](./knowledge-base-integration.md) - Add AI context with runbooks
+- [E2E Integration](./e2e-integration.md) - Connect CI/CD verification
+- [Architecture](./architecture.md) - System diagrams and data flows
