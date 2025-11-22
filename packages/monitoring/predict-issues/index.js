@@ -92,10 +92,11 @@ export async function main(event, context) {
     }
 
     let created = 0
+    let updated = 0
     for (const prediction of predictions) {
       // Check for existing similar open issue
       const { rows: existing } = await client.query(
-        `SELECT id FROM "LogIssue"
+        `SELECT id, metadata FROM "LogIssue"
          WHERE type = $1 AND status = 'open'
          AND "detectedAt" > NOW() - INTERVAL '6 hours'
          LIMIT 1`,
@@ -103,7 +104,18 @@ export async function main(event, context) {
       )
 
       if (existing.length > 0) {
-        console.log(`[predict-issues] Skipping duplicate prediction: ${prediction.type}`)
+        // Update existing issue: increment counter and update timestamp
+        const currentMetadata = existing[0].metadata || {}
+        const occurrences = (currentMetadata.occurrences || 1) + 1
+        await client.query(
+          `UPDATE "LogIssue"
+           SET "updatedAt" = NOW(),
+               metadata = metadata || $1
+           WHERE id = $2`,
+          [JSON.stringify({ occurrences, lastSeen: new Date().toISOString() }), existing[0].id]
+        )
+        console.log(`[predict-issues] Updated existing prediction: ${prediction.type} (${occurrences}x)`)
+        updated++
         continue
       }
 
@@ -129,13 +141,14 @@ export async function main(event, context) {
       created++
     }
 
-    console.log(`[predict-issues] Completed: detected=${predictions.length}, created=${created}`)
+    console.log(`[predict-issues] Completed: detected=${predictions.length}, created=${created}, updated=${updated}`)
 
     return {
       body: {
         success: true,
         predictions: predictions.length,
         predictionsCreated: created,
+        predictionsUpdated: updated,
         logsAnalyzed: hourlyTrend.reduce((sum, h) => sum + parseInt(h.total), 0),
       },
     }

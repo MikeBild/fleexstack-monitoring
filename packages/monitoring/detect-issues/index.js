@@ -96,10 +96,11 @@ export async function main(event, context) {
     }
 
     let created = 0
+    let updated = 0
     for (const issue of issues) {
       // Check for existing similar open issue
       const { rows: existing } = await client.query(
-        `SELECT id FROM "LogIssue"
+        `SELECT id, metadata FROM "LogIssue"
          WHERE type = $1 AND status = 'open'
          AND "detectedAt" > NOW() - INTERVAL '1 hour'
          LIMIT 1`,
@@ -107,7 +108,18 @@ export async function main(event, context) {
       )
 
       if (existing.length > 0) {
-        console.log(`[detect-issues] Skipping duplicate issue: ${issue.type}`)
+        // Update existing issue: increment counter and update timestamp
+        const currentMetadata = existing[0].metadata || {}
+        const occurrences = (currentMetadata.occurrences || 1) + 1
+        await client.query(
+          `UPDATE "LogIssue"
+           SET "updatedAt" = NOW(),
+               metadata = metadata || $1
+           WHERE id = $2`,
+          [JSON.stringify({ occurrences, lastSeen: new Date().toISOString() }), existing[0].id]
+        )
+        console.log(`[detect-issues] Updated existing issue: ${issue.type} (${occurrences}x)`)
+        updated++
         continue
       }
 
@@ -133,13 +145,14 @@ export async function main(event, context) {
       created++
     }
 
-    console.log(`[detect-issues] Completed: detected=${issues.length}, created=${created}, errorRate=${(errorRate * 100).toFixed(2)}%`)
+    console.log(`[detect-issues] Completed: detected=${issues.length}, created=${created}, updated=${updated}, errorRate=${(errorRate * 100).toFixed(2)}%`)
 
     return {
       body: {
         success: true,
         issuesDetected: issues.length,
         issuesCreated: created,
+        issuesUpdated: updated,
         errorRate: (errorRate * 100).toFixed(2) + '%',
       },
     }

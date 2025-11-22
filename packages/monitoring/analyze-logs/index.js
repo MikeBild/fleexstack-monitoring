@@ -101,7 +101,7 @@ export async function main(event, context) {
           for (const issue of issues) {
             // Check for existing similar open issue
             const { rows: existing } = await client.query(
-              `SELECT id FROM "LogIssue"
+              `SELECT id, metadata FROM "LogIssue"
                WHERE type = $1 AND status = 'open'
                AND "detectedAt" > NOW() - INTERVAL '24 hours'
                LIMIT 1`,
@@ -109,7 +109,17 @@ export async function main(event, context) {
             )
 
             if (existing.length > 0) {
-              console.log(`[analyze-logs] Skipping duplicate issue: ${issue.type}`)
+              // Update existing issue: increment counter and update timestamp
+              const currentMetadata = existing[0].metadata || {}
+              const occurrences = (currentMetadata.occurrences || 1) + 1
+              await client.query(
+                `UPDATE "LogIssue"
+                 SET "updatedAt" = NOW(),
+                     metadata = metadata || $1
+                 WHERE id = $2`,
+                [JSON.stringify({ occurrences, lastSeen: new Date().toISOString() }), existing[0].id]
+              )
+              console.log(`[analyze-logs] Updated existing issue: ${issue.type} (${occurrences}x)`)
               continue
             }
 
