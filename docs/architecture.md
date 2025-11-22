@@ -464,10 +464,44 @@ flowchart LR
 ```mermaid
 stateDiagram-v2
     [*] --> open: Issue detected
-    open --> open: Updated with new data
+    open --> open: Updated (occurrences++)
     open --> resolved: Manually resolved
+    open --> resolved: Auto-resolved (pattern gone)
     resolved --> [*]: Cleaned up after 90 days
 
     note right of open: Active monitoring
     note right of resolved: Archived
+```
+
+## Issue Deduplication Flow
+
+```mermaid
+flowchart TD
+    D[Pattern Detected] --> C{Existing open issue<br/>of same type?}
+    C -->|Yes| U[Update existing issue<br/>- Increment occurrences<br/>- Update lastSeen]
+    C -->|No| I[Insert new issue]
+    U --> E[End]
+    I --> E
+
+    style D fill:#4ecdc4
+    style U fill:#ffeaa7
+    style I fill:#74b9ff
+```
+
+## Auto-Resolution Flow
+
+```mermaid
+flowchart TD
+    R[Function runs] --> G[Get open issues<br/>older than grace period]
+    G --> L{For each issue}
+    L --> C{Pattern still<br/>detected?}
+    C -->|Yes| K[Keep open]
+    C -->|No| A[Auto-resolve<br/>- Set status=resolved<br/>- Add autoResolved metadata]
+    K --> L
+    A --> L
+    L -->|Done| E[End]
+
+    style R fill:#4ecdc4
+    style A fill:#fd79a8
+    style K fill:#a29bfe
 ```

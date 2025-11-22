@@ -203,6 +203,49 @@ To run manually:
 doctl serverless functions invoke monitoring/cleanup-data
 ```
 
+### Auto-Resolution
+
+Issues are automatically resolved when their patterns disappear:
+
+| Function | Grace Period | Description |
+|----------|--------------|-------------|
+| `detect-issues` | 1 hour | Resolves if pattern not detected |
+| `predict-issues` | 6 hours | Resolves if trend not detected |
+
+Auto-resolved issues have metadata:
+```json
+{
+  "autoResolved": true,
+  "resolvedReason": "Pattern no longer detected"
+}
+```
+
+### Daily Digest
+
+The `send-digest` function creates a GitHub Issue with:
+- Summary statistics (logs, errors, error rate)
+- Top errors from the last 24 hours
+- Critical and high severity open issues
+
+Issues are created in the `ALERTS_REPO` repository with labels `monitoring` and `digest`.
+
+### Issue Deduplication
+
+When the same issue type is detected multiple times:
+- Existing open issue is updated (not duplicated)
+- `metadata.occurrences` is incremented
+- `metadata.lastSeen` is updated
+- `updatedAt` timestamp is refreshed
+
+Query to find recurring issues:
+```sql
+SELECT type, title, metadata->>'occurrences' as occurrences
+FROM "LogIssue"
+WHERE status = 'open'
+AND (metadata->>'occurrences')::int > 1
+ORDER BY (metadata->>'occurrences')::int DESC;
+```
+
 ### Resolve Issues
 
 ```sql

@@ -232,7 +232,61 @@ if (parseInt(myPatternLogs[0].count) > 5) {
 }
 ```
 
-## Inserting Issues
+## Issue Lifecycle
+
+### Deduplication
+
+Before creating an issue, check for existing similar open issues:
+
+```javascript
+const { rows: existing } = await client.query(
+  `SELECT id, metadata FROM "LogIssue"
+   WHERE type = $1 AND status = 'open'
+   AND "detectedAt" > NOW() - INTERVAL '1 hour'
+   LIMIT 1`,
+  [issue.type]
+)
+
+if (existing.length > 0) {
+  // Update existing issue instead of creating duplicate
+  const occurrences = (existing[0].metadata?.occurrences || 1) + 1
+  await client.query(
+    `UPDATE "LogIssue"
+     SET "updatedAt" = NOW(),
+         metadata = metadata || $1
+     WHERE id = $2`,
+    [JSON.stringify({ occurrences, lastSeen: new Date().toISOString() }), existing[0].id]
+  )
+}
+```
+
+### Auto-Resolution
+
+Issues are automatically resolved when patterns disappear:
+
+```javascript
+// Get open issues not detected this run
+const { rows: openIssues } = await client.query(
+  `SELECT id, type FROM "LogIssue"
+   WHERE source = 'detector' AND status = 'open'
+   AND "updatedAt" < NOW() - INTERVAL '1 hour'`
+)
+
+for (const issue of openIssues) {
+  if (!detectedTypes.includes(issue.type)) {
+    await client.query(
+      `UPDATE "LogIssue"
+       SET status = 'resolved',
+           "resolvedAt" = NOW(),
+           metadata = metadata || $1
+       WHERE id = $2`,
+      [JSON.stringify({ autoResolved: true, resolvedReason: 'Pattern no longer detected' }), issue.id]
+    )
+  }
+}
+```
+
+### Inserting New Issues
 
 When creating LogIssue records, include all required fields:
 

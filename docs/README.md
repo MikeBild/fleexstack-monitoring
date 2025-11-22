@@ -71,6 +71,9 @@ graph TB
 - **Serverless**: No infrastructure to manage, auto-scaling
 - **AI Analysis**: DO GenAI agent analyzes logs for anomalies
 - **Pattern Detection**: Automatic detection of error spikes, memory issues
+- **Issue Deduplication**: Updates existing issues instead of creating duplicates
+- **Auto-Resolution**: Closes issues when patterns disappear
+- **GitHub Integration**: Daily digest and alerts via GitHub Issues
 - **Cost Effective**: Runs within DO Functions free tier (~15k invocations/month)
 
 ## Repository
