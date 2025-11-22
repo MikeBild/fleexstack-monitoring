@@ -75,3 +75,11 @@ packages:
         limits:
           timeout: 120000
           memory: 256
+
+      - name: fleexstack-sample-app-bump-version-monitor
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 60000
+          memory: 128

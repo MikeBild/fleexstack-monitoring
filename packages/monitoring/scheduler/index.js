@@ -17,6 +17,7 @@ export async function main(event, context) {
   if (minute === 0 || minute === 5) scheduled.push('predict-issues')
   if (hour === 8 && (minute === 0 || minute === 5)) scheduled.push('send-digest')
   if (hour === 2 && (minute === 0 || minute === 5)) scheduled.push('cleanup-data')
+  if (minute % 15 === 0) scheduled.push('fleexstack-sample-app-bump-version-monitor')
 
   console.log(`[scheduler] Functions to invoke: ${scheduled.length > 0 ? scheduled.join(', ') : 'none'}`)
 
