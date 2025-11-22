@@ -77,7 +77,7 @@ packages:
           timeout: 120000
           memory: 256
 
-      - name: fleexstack-sample-app-bump-version-monitor
+      - name: fleexstack-sample-app-version-bump-bot
         runtime: nodejs:18
         main: main
         web: true

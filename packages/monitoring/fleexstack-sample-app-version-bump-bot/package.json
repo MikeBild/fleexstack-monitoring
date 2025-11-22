@@ -1,5 +1,5 @@
 {
-  "name": "fleexstack-sample-app-bump-version-monitor",
+  "name": "fleexstack-sample-app-version-bump-bot",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
