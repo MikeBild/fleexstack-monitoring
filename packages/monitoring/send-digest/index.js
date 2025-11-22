@@ -79,14 +79,19 @@ export async function main(event, context) {
 
     console.log('[send-digest] Digest:', JSON.stringify(digest))
 
+    let issueUrl = null
     if (process.env.ALERTS_REPO && process.env.GH_TOKEN) {
       try {
         const issueBody = formatDigestAsMarkdown(digest)
+        console.log(`[send-digest] Creating GitHub issue in ${process.env.ALERTS_REPO}`)
+
         const response = await fetch(`https://api.github.com/repos/${process.env.ALERTS_REPO}/issues`, {
           method: 'POST',
           headers: {
-            'Authorization': `token ${process.env.GH_TOKEN}`,
+            'Authorization': `Bearer ${process.env.GH_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
             'Content-Type': 'application/json',
+            'User-Agent': 'Fleexstack-Monitoring-Bot',
           },
           body: JSON.stringify({
             title: `[Monitoring Digest] ${digest.date}`,
@@ -97,13 +102,17 @@ export async function main(event, context) {
 
         if (response.ok) {
           const issue = await response.json()
-          console.log(`[send-digest] Created GitHub issue: ${issue.html_url}`)
+          issueUrl = issue.html_url
+          console.log(`[send-digest] Created GitHub issue: ${issueUrl}`)
         } else {
-          console.error(`[send-digest] GitHub API error: ${response.status}`)
+          const errorText = await response.text()
+          console.error(`[send-digest] GitHub API error: ${response.status}`, errorText)
         }
       } catch (error) {
         console.error('[send-digest] Failed to create GitHub issue:', error.message)
       }
+    } else {
+      console.log('[send-digest] Skipping GitHub issue (ALERTS_REPO or GH_TOKEN not configured)')
     }
 
     console.log('[send-digest] Completed')
@@ -112,6 +121,7 @@ export async function main(event, context) {
       body: {
         success: true,
         digest,
+        issueUrl,
       },
     }
   } catch (error) {
