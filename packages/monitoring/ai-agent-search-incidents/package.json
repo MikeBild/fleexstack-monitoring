@@ -1,0 +1,9 @@
+{
+  "name": "ai-agent-search-incidents",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "pg": "^8.11.0"
+  }
+}
