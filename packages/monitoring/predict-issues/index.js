@@ -91,7 +91,22 @@ export async function main(event, context) {
       })
     }
 
+    let created = 0
     for (const prediction of predictions) {
+      // Check for existing similar open issue
+      const { rows: existing } = await client.query(
+        `SELECT id FROM "LogIssue"
+         WHERE type = $1 AND status = 'open'
+         AND "detectedAt" > NOW() - INTERVAL '6 hours'
+         LIMIT 1`,
+        [prediction.type]
+      )
+
+      if (existing.length > 0) {
+        console.log(`[predict-issues] Skipping duplicate prediction: ${prediction.type}`)
+        continue
+      }
+
       await client.query(
         `INSERT INTO "LogIssue" (id, type, severity, title, description, "rootCause", recommendation, source, status, "detectedAt", "updatedAt", metadata, "affectedLogs")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
@@ -111,14 +126,16 @@ export async function main(event, context) {
           [],
         ]
       )
+      created++
     }
 
-    console.log('[predict-issues] Completed: predictions=', predictions.length)
+    console.log(`[predict-issues] Completed: detected=${predictions.length}, created=${created}`)
 
     return {
       body: {
         success: true,
         predictions: predictions.length,
+        predictionsCreated: created,
         logsAnalyzed: hourlyTrend.reduce((sum, h) => sum + parseInt(h.total), 0),
       },
     }

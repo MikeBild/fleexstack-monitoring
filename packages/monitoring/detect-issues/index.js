@@ -95,7 +95,22 @@ export async function main(event, context) {
       })
     }
 
+    let created = 0
     for (const issue of issues) {
+      // Check for existing similar open issue
+      const { rows: existing } = await client.query(
+        `SELECT id FROM "LogIssue"
+         WHERE type = $1 AND status = 'open'
+         AND "detectedAt" > NOW() - INTERVAL '1 hour'
+         LIMIT 1`,
+        [issue.type]
+      )
+
+      if (existing.length > 0) {
+        console.log(`[detect-issues] Skipping duplicate issue: ${issue.type}`)
+        continue
+      }
+
       await client.query(
         `INSERT INTO "LogIssue" (id, type, severity, title, description, "rootCause", recommendation, source, status, "detectedAt", "updatedAt", metadata, "affectedLogs")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
@@ -115,14 +130,16 @@ export async function main(event, context) {
           [],
         ]
       )
+      created++
     }
 
-    console.log('[detect-issues] Completed: issues=', issues.length, 'errorRate=', (errorRate * 100).toFixed(2) + '%')
+    console.log(`[detect-issues] Completed: detected=${issues.length}, created=${created}, errorRate=${(errorRate * 100).toFixed(2)}%`)
 
     return {
       body: {
         success: true,
         issuesDetected: issues.length,
+        issuesCreated: created,
         errorRate: (errorRate * 100).toFixed(2) + '%',
       },
     }

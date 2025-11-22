@@ -99,6 +99,20 @@ export async function main(event, context) {
           }
 
           for (const issue of issues) {
+            // Check for existing similar open issue
+            const { rows: existing } = await client.query(
+              `SELECT id FROM "LogIssue"
+               WHERE type = $1 AND status = 'open'
+               AND "detectedAt" > NOW() - INTERVAL '24 hours'
+               LIMIT 1`,
+              [issue.type || 'ai-detected']
+            )
+
+            if (existing.length > 0) {
+              console.log(`[analyze-logs] Skipping duplicate issue: ${issue.type}`)
+              continue
+            }
+
             await client.query(
               `INSERT INTO "LogIssue" (id, type, severity, title, description, "rootCause", recommendation, source, status, "detectedAt", "updatedAt", metadata, "affectedLogs")
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
