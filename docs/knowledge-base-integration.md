@@ -1,134 +1,212 @@
 # Knowledge Base Integration
 
-Add operational knowledge to GenAI log analysis using function routing for context-aware recommendations.
+Enhance GenAI log analysis with operational knowledge for context-aware recommendations.
 
-## Prerequisites
-
-Before starting, ensure you have:
-
-- [ ] DigitalOcean GenAI Agent created
-  - Get `agent_uuid` from: Agent Platform → Agents → Your Agent → Settings
-- [ ] DO Functions namespace connected (`doctl serverless connect`)
-- [ ] PostgreSQL with `LogIssue` table
-- [ ] Environment variables configured:
-  - `DATABASE_URL` - PostgreSQL connection string
-  - `GENAI_AGENT_URL` - GenAI agent endpoint
-  - `GENAI_API_KEY` - GenAI API key (optional)
-  - `DO_API_TOKEN` - for API-based configuration
-  - `ALERTS_REPO=MikeBild/fleexstack`
-  - `GH_TOKEN` - GitHub token with repo access
-- [ ] Existing `analyze-logs` function working
-
-### Getting the GenAI Agent URL
-
-1. Go to **DigitalOcean Control Panel → Agent Platform → Agents**
-2. Select your agent (or create one with Claude/GPT model)
-3. Go to **Settings** tab
-4. Copy the **Agent Endpoint URL** (format: `https://<id>.agents.do-ai.run`)
-5. Set as environment variable: `GENAI_AGENT_URL=https://<id>.agents.do-ai.run`
-
----
-
-## Architecture
+## Overview
 
 ```mermaid
 graph TB
     subgraph "Knowledge Sources"
-        SD[send-digest] -->|creates| GH[(GitHub Issues)]
+        GH_DOCS[GitHub Docs] -->|sync-docs-to-spaces| SPACES[(DO Spaces)]
+        SD[send-digest] -->|creates| GH_ISSUES[(GitHub Issues)]
     end
 
-    subgraph "Log Analysis Flow"
+    subgraph "GenAI Agent"
+        SPACES --> KB[Knowledge Base]
         AL[analyze-logs] --> Agent[GenAI Agent]
-        Agent -->|"get_runbook('high-error-rate')"| GR[ai-agent-get-runbook]
-        Agent -->|"search_incidents('memory')"| SI[ai-agent-search-incidents]
-        Agent -->|"search_github_issues('error')"| SGI[ai-agent-search-github-issues]
-        GR --> KB[(knowledge/)]
+        KB --> Agent
+        Agent -->|get_runbook| GR[ai-agent-get-runbook]
+        Agent -->|search_incidents| SI[ai-agent-search-incidents]
+        Agent -->|search_github_issues| SGI[ai-agent-search-github-issues]
+        GR --> RUNBOOKS[(Runbooks)]
         SI --> DB[(PostgreSQL)]
-        SGI --> GH
-        Agent --> Issues[Contextual Issues]
+        SGI --> GH_ISSUES
     end
+
+    Agent --> Issues[Contextual Issues]
 
     style Agent fill:#74b9ff
-    style GR fill:#00b894
-    style SI fill:#00b894
-    style SGI fill:#00b894
-    style SD fill:#ffeaa7
-```
-
-## How It Works
-
-```mermaid
-sequenceDiagram
-    participant AL as analyze-logs
-    participant AI as GenAI Agent
-    participant GR as ai-agent-get-runbook
-    participant SI as ai-agent-search-incidents
-    participant SGI as ai-agent-search-github-issues
-
-    AL->>AI: Analyze these logs
-    AI->>GR: get_runbook("high-error-rate")
-    GR-->>AI: Runbook content
-    AI->>SI: search_incidents("memory")
-    SI-->>AI: DB incidents
-    AI->>SGI: search_github_issues("error spike")
-    SGI-->>AI: GitHub resolutions
-    AI-->>AL: Issues with recommendations
-```
-
-## Benefits
-
-```mermaid
-graph LR
-    F1[Unlimited knowledge] --> F2[Query on demand]
-    F2 --> F3[Real-time DB data]
-    F3 --> F4[No token limits]
-
-    style F1 fill:#00b894
-    style F2 fill:#00b894
-    style F3 fill:#00b894
-    style F4 fill:#00b894
+    style KB fill:#a29bfe
+    style SPACES fill:#ffeaa7
 ```
 
 ---
 
-## Step 1: Create Knowledge Structure
+## Quick Start (Operators)
 
-### Issue Types
+Deploy knowledge base integration in 5 minutes.
 
-Runbooks should match issue types created by [`detect-issues/index.js`](../packages/monitoring/detect-issues/index.js):
+### Prerequisites
 
-| Type | Created By | Condition |
-|------|------------|-----------|
-| `high-error-rate` | detect-issues | Error rate > 5% |
-| `repeated-error` | detect-issues | Same error 5+ times |
-| `memory-warning` | detect-issues | 3+ memory warnings |
-| `connection-failure` | detect-issues | Any connection error |
-| `error-rate-trending-up` | predict-issues | 50% increase trend |
-| `log-volume-spike` | predict-issues | 2x volume spike |
-| `ai-detected` | analyze-logs | AI-identified anomaly |
+- doctl configured with DO API token
+- Existing fleexstack-monitoring deployment
+- GitHub token with repo access
 
-### Directory Structure
+### 1. Deploy Functions
 
-```
-knowledge/
-├── runbooks/
-│   ├── high-error-rate.md
-│   ├── memory-warning.md
-│   ├── connection-failure.md
-│   └── repeated-error.md
-└── incidents/
-    └── example-incident.md
+```bash
+doctl serverless deploy .
 ```
 
-See related functions:
-- [`detect-issues/index.js`](../packages/monitoring/detect-issues/index.js) - pattern-based detection
-- [`predict-issues/index.js`](../packages/monitoring/predict-issues/index.js) - trend prediction
-- [`analyze-logs/index.js`](../packages/monitoring/analyze-logs/index.js) - AI analysis
+### 2. Create Spaces Bucket
 
-### Example Runbook
+Go to https://cloud.digitalocean.com/spaces and create:
+- **Name**: `fleexstack-monitoring`
+- **Region**: `fra1`
 
-`knowledge/runbooks/high-error-rate.md`:
+### 3. Sync Documentation
 
+```bash
+doctl serverless functions invoke monitoring/sync-docs-to-spaces
+```
+
+### 4. Create & Attach Knowledge Base
+
+```bash
+# Create KB
+doctl genai knowledge-base create \
+  --name "fleexstack-docs" \
+  --region "tor1" \
+  --project-id "d4d45fd9-0b7c-4daf-a5ca-7507b1266413" \
+  --embedding-model-uuid "22653204-79ed-11ef-bf8f-4e013e2ddde4" \
+  --data-sources '[{"spaces_data_source":{"bucket_name":"fleexstack-monitoring","item_path":"/docs","region":"fra1"}}]'
+
+# Get KB UUID from output, then attach
+doctl genai knowledge-base attach <AGENT_UUID> <KB_UUID>
+```
+
+### 5. Configure Function Routes
+
+```bash
+AGENT_UUID=$(doctl genai agent list -o json | jq -r '.[0].uuid')
+FAAS_NS=$(doctl serverless namespaces list -o json | jq -r '.[0].namespace')
+
+# Add all three routes
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "get_runbook" \
+  --description "Retrieve remediation runbook for issue type" \
+  --faas-name "monitoring/ai-agent-get-runbook" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"issue_type","in":"query","schema":{"type":"string"},"required":true,"description":"Issue type"}]}' \
+  --output-schema '{"properties":{"runbook":{"type":"string"}}}'
+
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "search_incidents" \
+  --description "Search resolved incidents in database" \
+  --faas-name "monitoring/ai-agent-search-incidents" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Search keywords"}]}' \
+  --output-schema '{"properties":{"incidents":{"type":"array"}}}'
+
+doctl genai agent functionroute create \
+  --agent-id "$AGENT_UUID" \
+  --name "search_github_issues" \
+  --description "Search closed GitHub issues" \
+  --faas-name "monitoring/ai-agent-search-github-issues" \
+  --faas-namespace "$FAAS_NS" \
+  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Search keywords"}]}' \
+  --output-schema '{"properties":{"issues":{"type":"array"}}}'
+```
+
+### 6. Test
+
+```bash
+doctl serverless functions invoke monitoring/ai-agent-get-runbook -p issue_type:high-error-rate
+doctl serverless functions invoke monitoring/ai-agent-search-incidents -p keywords:memory
+doctl serverless functions invoke monitoring/ai-agent-search-github-issues -p keywords:error
+```
+
+---
+
+## Detailed Guide (Developers)
+
+### Architecture
+
+```mermaid
+sequenceDiagram
+    participant Sync as sync-docs-to-spaces
+    participant GH as GitHub API
+    participant S3 as DO Spaces
+    participant KB as Knowledge Base
+    participant AL as analyze-logs
+    participant Agent as GenAI Agent
+    participant Funcs as Function Routes
+
+    Note over Sync,S3: Documentation Sync (manual/scheduled)
+    Sync->>GH: Fetch docs recursively
+    GH-->>Sync: All files
+    Sync->>S3: Upload to Spaces
+    S3-->>KB: Index content
+
+    Note over AL,Funcs: Log Analysis Flow
+    AL->>Agent: Analyze logs
+    Agent->>KB: Search documentation
+    KB-->>Agent: Relevant context
+    Agent->>Funcs: Call functions
+    Funcs-->>Agent: Runbooks, incidents, issues
+    Agent-->>AL: Issues with recommendations
+```
+
+### Components
+
+| Component | Purpose | Source |
+|-----------|---------|--------|
+| `sync-docs-to-spaces` | Sync GitHub docs to Spaces | GitHub API → DO Spaces |
+| Knowledge Base | Vector search on documentation | DO Spaces |
+| `ai-agent-get-runbook` | Retrieve runbook by issue type | Local files |
+| `ai-agent-search-incidents` | Search resolved incidents | PostgreSQL |
+| `ai-agent-search-github-issues` | Search closed issues | GitHub API |
+
+### Environment Variables
+
+```bash
+# Required for all functions
+DATABASE_URL=postgresql://...
+GH_TOKEN=ghp_...
+ALERTS_REPO=MikeBild/fleexstack
+
+# Required for sync-docs-to-spaces
+SPACES_ACCESS_KEY_ID=DO...
+SPACES_SECRET_ACCESS_KEY=...
+SPACES_BUCKET=fleexstack-monitoring
+SPACES_REGION=fra1
+DOCS_REPO=MikeBild/fleexstack
+DOCS_PATH=docs
+
+# GenAI Agent
+GENAI_AGENT_URL=https://<id>.agents.do-ai.run
+```
+
+### Function: sync-docs-to-spaces
+
+Recursively syncs all files from a GitHub repo to DO Spaces for Knowledge Base indexing.
+
+**Features:**
+- Traverses directories recursively
+- Preserves folder structure
+- Supports md, json, yaml, and other text files
+- Public-read ACL for KB access
+
+**Invoke manually:**
+```bash
+doctl serverless functions invoke monitoring/sync-docs-to-spaces
+```
+
+### Function: ai-agent-get-runbook
+
+Returns runbook content for a specific issue type.
+
+**Issue Types:**
+| Type | Trigger Condition |
+|------|-------------------|
+| `high-error-rate` | Error rate > 5% |
+| `repeated-error` | Same error 5+ times |
+| `memory-warning` | 3+ memory warnings |
+| `connection-failure` | Any connection error |
+
+**Example runbook** (`knowledge/runbooks/high-error-rate.md`):
 ```markdown
 # High Error Rate
 
@@ -144,138 +222,15 @@ See related functions:
 3. Check downstream health
 ```
 
-### Example Incident Post-Mortem
+> **Note**: Knowledge files must be in function directory: `packages/monitoring/ai-agent-get-runbook/knowledge/`
 
-`knowledge/incidents/2024-01-db-pool-exhaustion.md`:
+### Function: ai-agent-search-incidents
 
-```markdown
-# Database Pool Exhaustion Incident
+Searches resolved issues in PostgreSQL for similar past incidents.
 
-**Date**: 2024-01-15
-**Duration**: 45 minutes
-**Severity**: High
-**Impact**: 500 errors for 30% of API requests
-
-## Timeline
-
-- 14:30 - Error rate spike detected by monitoring
-- 14:35 - On-call engineer alerted
-- 14:45 - Root cause identified: connection pool exhausted
-- 15:00 - Pool size increased, service restarted
-- 15:15 - Error rate returned to normal
-
-## Detection
-
-Detected by `detect-issues` function via high-error-rate pattern (>5% error rate).
-
-## Root Cause
-
-Long-running queries from new report feature held connections open, exhausting the 20-connection pool during peak traffic.
-
-## Resolution
-
-1. Increased pool size from 20 to 50
-2. Added query timeout of 30 seconds
-3. Restarted affected services
-
-## Lessons Learned
-
-- Monitor connection pool metrics proactively
-- Set query timeouts for all database operations
-- Load test new features before deployment
-
-## Action Items
-
-- [ ] Add connection pool metrics to dashboard
-- [ ] Implement automatic pool size scaling
-- [ ] Add query timeout to coding standards
-```
-
----
-
-## Step 2: Create Functions
-
-### Directory Structure
-
-```
-packages/monitoring/
-├── ai-agent-get-runbook/
-│   ├── index.js
-│   └── package.json
-├── ai-agent-search-incidents/
-│   ├── index.js
-│   └── package.json
-└── ai-agent-search-github-issues/
-    ├── index.js
-    └── package.json
-```
-
-### ai-agent-get-runbook/package.json
-
-```json
-{
-  "name": "ai-agent-get-runbook",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module"
-}
-```
-
-### ai-agent-get-runbook/index.js
-
-```javascript
-import fs from 'fs'
-import path from 'path'
-
-export async function main(event, context) {
-  const { issue_type } = event
-  console.log(`[ai-agent-get-runbook] Requested: ${issue_type}`)
-
-  if (!issue_type) {
-    console.log('[ai-agent-get-runbook] Error: issue_type required')
-    return { body: { error: 'issue_type parameter required' } }
-  }
-
-  try {
-    // In DO Functions, files are relative to function directory
-    const runbookPath = path.join(process.cwd(), 'knowledge', 'runbooks', `${issue_type}.md`)
-    console.log(`[ai-agent-get-runbook] Looking for: ${runbookPath}`)
-
-    if (fs.existsSync(runbookPath)) {
-      const content = fs.readFileSync(runbookPath, 'utf-8')
-      console.log(`[ai-agent-get-runbook] Found runbook: ${content.length} chars`)
-      return { body: { runbook: content } }
-    }
-
-    console.log(`[ai-agent-get-runbook] Not found: ${issue_type}`)
-    return { body: { runbook: null, message: `No runbook for ${issue_type}` } }
-  } catch (err) {
-    console.error(`[ai-agent-get-runbook] Error: ${err.message}`)
-    return { body: { error: err.message } }
-  }
-}
-```
-
-### ai-agent-search-incidents/package.json
-
-```json
-{
-  "name": "ai-agent-search-incidents",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
-  "dependencies": {
-    "pg": "^8.11.0"
-  }
-}
-```
-
-### LogIssue Table Schema
-
-The `search-incidents` function queries the `LogIssue` table. Schema from [`setup.sql`](../setup.sql):
-
+**Database Schema:**
 ```sql
-CREATE TABLE IF NOT EXISTS "LogIssue" (
+CREATE TABLE "LogIssue" (
   id UUID PRIMARY KEY,
   type VARCHAR(50) NOT NULL,
   severity VARCHAR(20) NOT NULL,
@@ -283,172 +238,36 @@ CREATE TABLE IF NOT EXISTS "LogIssue" (
   description TEXT NOT NULL,
   "rootCause" TEXT,
   recommendation TEXT,
-  source VARCHAR(50) NOT NULL,
   status VARCHAR(20) DEFAULT 'open',
-  "detectedAt" TIMESTAMP NOT NULL,
-  "resolvedAt" TIMESTAMP,
-  metadata JSONB
+  "resolvedAt" TIMESTAMP
 );
 ```
 
-Key columns for search:
-- `status` - must be 'resolved' to appear in search results
-- `title`, `description`, `rootCause` - searched with ILIKE for keywords
-- `resolvedAt` - orders results by most recent resolution
+**Search columns**: `title`, `description`, `rootCause` (ILIKE)
 
-### ai-agent-search-incidents/index.js
+### Function: ai-agent-search-github-issues
 
-```javascript
-import pg from 'pg'
+Searches closed GitHub issues for past resolutions.
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+**Returns:**
+- Issue number, title, body
+- Labels
+- Last comment as resolution
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: true,
-})
-
-export async function main(event, context) {
-  const { keywords, limit = 5 } = event
-  console.log(`[ai-agent-search-incidents] Keywords: ${keywords}, limit: ${limit}`)
-
-  if (!keywords) {
-    console.log('[ai-agent-search-incidents] Error: keywords required')
-    return { body: { error: 'keywords parameter required' } }
-  }
-
-  let client
-  try {
-    client = await pool.connect()
-    console.log('[ai-agent-search-incidents] Connected to database')
-
-    const { rows } = await client.query(
-      `SELECT type, title, "rootCause", recommendation, "resolvedAt"
-       FROM "LogIssue"
-       WHERE status = 'resolved'
-         AND (title ILIKE $1 OR description ILIKE $1 OR "rootCause" ILIKE $1)
-       ORDER BY "resolvedAt" DESC
-       LIMIT $2`,
-      [`%${keywords}%`, limit]
-    )
-
-    console.log(`[ai-agent-search-incidents] Found ${rows.length} incidents`)
-    return { body: { incidents: rows } }
-  } catch (err) {
-    console.error(`[ai-agent-search-incidents] Error: ${err.message}`)
-    return { body: { error: err.message, incidents: [] } }
-  } finally {
-    if (client) client.release()
-  }
-}
-```
-
-### ai-agent-search-github-issues/package.json
-
-```json
-{
-  "name": "ai-agent-search-github-issues",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module"
-}
-```
-
-### ai-agent-search-github-issues/index.js
-
-Searches closed GitHub issues created by `send-digest` for resolution patterns.
-
-Uses same GitHub headers as [`send-digest/index.js`](../packages/monitoring/send-digest/index.js):
-
-```javascript
-// Shared GitHub API headers (same as send-digest)
-const getGitHubHeaders = (token) => ({
-  'Authorization': `Bearer ${token}`,
-  'Accept': 'application/vnd.github.v3+json',
-  'User-Agent': 'Fleexstack-Monitoring-Bot',
-})
-
-export async function main(event, context) {
-  const { keywords, limit = 5 } = event
-  console.log(`[ai-agent-search-github-issues] Keywords: ${keywords}, limit: ${limit}`)
-
-  if (!keywords) {
-    return { body: { error: 'keywords parameter required' } }
-  }
-
-  const repo = process.env.ALERTS_REPO
-  const token = process.env.GH_TOKEN
-
-  if (!repo || !token) {
-    console.log('[ai-agent-search-github-issues] ALERTS_REPO or GH_TOKEN not configured')
-    return { body: { issues: [], message: 'GitHub not configured' } }
-  }
-
-  const headers = getGitHubHeaders(token)
-
-  try {
-    // Search closed issues with keywords
-    const query = encodeURIComponent(`repo:${repo} is:issue is:closed ${keywords}`)
-    const url = `https://api.github.com/search/issues?q=${query}&per_page=${limit}&sort=updated&order=desc`
-
-    console.log(`[ai-agent-search-github-issues] Searching: ${url}`)
-
-    const response = await fetch(url, { headers })
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error(`[ai-agent-search-github-issues] GitHub API error: ${response.status}`, error)
-      return { body: { error: `GitHub API error: ${response.status}`, issues: [] } }
-    }
-
-    const data = await response.json()
-    console.log(`[ai-agent-search-github-issues] Found ${data.total_count} issues`)
-
-    // Get issue details with comments for resolution context
-    const issues = await Promise.all(
-      data.items.slice(0, limit).map(async (issue) => {
-        let resolution = null
-        try {
-          const commentsRes = await fetch(issue.comments_url, { headers })
-          if (commentsRes.ok) {
-            const comments = await commentsRes.json()
-            if (comments.length > 0) {
-              resolution = comments[comments.length - 1].body
-            }
-          }
-        } catch (err) {
-          console.log(`[ai-agent-search-github-issues] Failed to fetch comments: ${err.message}`)
-        }
-
-        return {
-          number: issue.number,
-          title: issue.title,
-          body: issue.body?.substring(0, 500) || '',
-          labels: issue.labels.map(l => l.name),
-          closedAt: issue.closed_at,
-          url: issue.html_url,
-          resolution,
-        }
-      })
-    )
-
-    console.log(`[ai-agent-search-github-issues] Returning ${issues.length} issues with context`)
-    return { body: { issues } }
-  } catch (err) {
-    console.error(`[ai-agent-search-github-issues] Error: ${err.message}`)
-    return { body: { error: err.message, issues: [] } }
-  }
-}
-```
-
----
-
-## Step 3: Configure project.yml
+### project.yml Configuration
 
 ```yaml
 packages:
   - name: monitoring
     functions:
+      - name: sync-docs-to-spaces
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 120000
+          memory: 256
+
       - name: ai-agent-get-runbook
         runtime: nodejs:18
         main: main
@@ -474,404 +293,121 @@ packages:
           memory: 128
 ```
 
-> **Note**: DO Functions doesn't support the `include` key. Knowledge files must be placed directly in the function directory: `packages/monitoring/ai-agent-get-runbook/knowledge/`
+### analyze-logs Integration
 
-### Security Note
-
-Functions with `web: true` are publicly accessible URLs. This is intentional - the GenAI Agent calls them directly without authentication. The functions only return non-sensitive operational data (runbooks, past incidents). Sensitive data (tokens, credentials) are stored as environment variables and never exposed.
-
----
-
-## Step 4: Route Functions to Agent
-
-```mermaid
-graph LR
-    CP[Control Panel] --> Agent
-    Agent --> GR[ai-agent-get-runbook]
-    Agent --> SI[ai-agent-search-incidents]
-    Agent --> SGI[ai-agent-search-github-issues]
-
-    subgraph "Agent Platform → Agents → Resources"
-        Agent
-    end
-```
-
-### Via Control Panel
-
-1. Navigate to **Agent Platform → Agents → Your Agent → Resources**
-2. Click **Add Function Route**
-3. Configure each function:
-
-| Function | Namespace | Instructions |
-|----------|-----------|--------------|
-| `ai-agent-get-runbook` | `monitoring` | Retrieve remediation runbook for issue type |
-| `ai-agent-search-incidents` | `monitoring` | Search past resolved incidents in database |
-| `ai-agent-search-github-issues` | `monitoring` | Search closed GitHub issues for resolutions |
-
-### Input Schemas
-
-**get-runbook**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "issue_type": {
-      "type": "string",
-      "description": "Issue type: high-error-rate, memory-warning, connection-failure, repeated-error"
-    }
-  },
-  "required": ["issue_type"]
-}
-```
-
-**search-incidents**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "keywords": {
-      "type": "string",
-      "description": "Keywords to search in past incidents"
-    },
-    "limit": {
-      "type": "number",
-      "description": "Max results (default 5)"
-    }
-  },
-  "required": ["keywords"]
-}
-```
-
-**search-github-issues**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "keywords": {
-      "type": "string",
-      "description": "Keywords to search in closed GitHub issues"
-    },
-    "limit": {
-      "type": "number",
-      "description": "Max results (default 5)"
-    }
-  },
-  "required": ["keywords"]
-}
-```
-
-### Output Schemas (Optional)
-
-Adding output schemas helps agent understand responses for multi-function routing:
-
-**get-runbook output**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "runbook": { "type": "string", "description": "Markdown content of runbook" },
-    "message": { "type": "string", "description": "Error or not found message" }
-  }
-}
-```
-
-**search-incidents output**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "incidents": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "type": { "type": "string" },
-          "title": { "type": "string" },
-          "rootCause": { "type": "string" },
-          "recommendation": { "type": "string" }
-        }
-      }
-    }
-  }
-}
-```
-
-**search-github-issues output**:
-```json
-{
-  "type": "object",
-  "properties": {
-    "issues": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "properties": {
-          "number": { "type": "number" },
-          "title": { "type": "string" },
-          "body": { "type": "string" },
-          "resolution": { "type": "string" },
-          "url": { "type": "string" }
-        }
-      }
-    }
-  }
-}
-```
-
-### Via doctl CLI (Recommended)
-
-```bash
-# Get agent UUID and FaaS namespace
-AGENT_UUID=$(doctl genai agent list -o json | jq -r '.[0].uuid')
-FAAS_NS=$(doctl serverless namespaces list -o json | jq -r '.[0].namespace')
-
-# Add get_runbook route
-doctl genai agent functionroute create \
-  --agent-id "$AGENT_UUID" \
-  --name "get_runbook" \
-  --description "Retrieve remediation runbook for issue type" \
-  --faas-name "monitoring/ai-agent-get-runbook" \
-  --faas-namespace "$FAAS_NS" \
-  --input-schema '{"parameters":[{"name":"issue_type","in":"query","schema":{"type":"string"},"required":true,"description":"Issue type: high-error-rate, memory-warning, connection-failure, repeated-error"}]}' \
-  --output-schema '{"properties":{"runbook":{"type":"string","description":"Markdown content of runbook"},"message":{"type":"string","description":"Error or not found message"}}}'
-
-# Add search_incidents route
-doctl genai agent functionroute create \
-  --agent-id "$AGENT_UUID" \
-  --name "search_incidents" \
-  --description "Search past resolved incidents in database" \
-  --faas-name "monitoring/ai-agent-search-incidents" \
-  --faas-namespace "$FAAS_NS" \
-  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Keywords to search in past incidents"},{"name":"limit","in":"query","schema":{"type":"number"},"required":false,"description":"Max results (default 5)"}]}' \
-  --output-schema '{"properties":{"incidents":{"type":"array","description":"Array of resolved incidents with type, title, rootCause, recommendation"}}}'
-
-# Add search_github_issues route
-doctl genai agent functionroute create \
-  --agent-id "$AGENT_UUID" \
-  --name "search_github_issues" \
-  --description "Search closed GitHub issues for resolutions" \
-  --faas-name "monitoring/ai-agent-search-github-issues" \
-  --faas-namespace "$FAAS_NS" \
-  --input-schema '{"parameters":[{"name":"keywords","in":"query","schema":{"type":"string"},"required":true,"description":"Keywords to search in closed GitHub issues"},{"name":"limit","in":"query","schema":{"type":"number"},"required":false,"description":"Max results (default 5)"}]}' \
-  --output-schema '{"properties":{"issues":{"type":"array","description":"Array of GitHub issues with number, title, body, resolution, url"}}}'
-```
-
-### Verify Routes
-
-```bash
-# List agent with function routes
-doctl genai agent get $AGENT_UUID -o json | jq '.[0].functions[] | {name, faas_name}'
-```
-
----
-
-## Step 5: Update analyze-logs
-
-Update the system prompt in `packages/monitoring/analyze-logs/index.js` to instruct the agent to use functions.
-
-### Changes Required
-
-**1. Replace the system prompt** (around line 49-50):
+The `analyze-logs` function uses this system prompt:
 
 ```javascript
-// OLD prompt
-const systemPrompt = 'You are a log analysis assistant. Analyze the provided logs and identify any issues...'
-
-// NEW prompt with function routing
 const systemPrompt = `You are a log analysis assistant for FleexStack monitoring.
 
 IMPORTANT: Use available functions to provide context-aware recommendations:
-- get_runbook(issue_type) - retrieve remediation steps for: high-error-rate, memory-warning, connection-failure, repeated-error
-- search_incidents(keywords) - find similar past resolved incidents in database
+- get_runbook(issue_type) - retrieve remediation steps
+- search_incidents(keywords) - find similar past resolved incidents
 - search_github_issues(keywords) - find closed GitHub issues with resolutions
 
 For each issue you identify:
-1. Call get_runbook with the issue type to get remediation steps
-2. Call search_incidents with relevant keywords to find similar past issues
-3. Call search_github_issues with relevant keywords to find GitHub issue resolutions
-4. Include specific recommendations from runbooks, past incidents, and GitHub discussions
+1. Call get_runbook with the issue type
+2. Call search_incidents with relevant keywords
+3. Call search_github_issues for GitHub resolutions
+4. Include specific recommendations from all sources
 
-Return a JSON object with an "issues" array containing objects with:
-- type: issue category
-- severity: low/medium/high/critical
-- title: brief summary
-- description: detailed description
-- rootCause: likely cause from runbook/incidents/GitHub
-- recommendation: specific steps from runbook and past resolutions`
+Return a JSON object with an "issues" array containing:
+- type, severity, title, description
+- rootCause (from runbook/incidents/GitHub)
+- recommendation (specific steps)`
 ```
 
-**2. Increase timeout** for function calls (around line 69):
-
-```javascript
-// OLD
-signal: AbortSignal.timeout(30000)
-
-// NEW - longer timeout for function calls
-signal: AbortSignal.timeout(60000)
-```
-
-**3. Increase max_tokens** for detailed responses:
-
-```javascript
-// OLD
-max_tokens: 1000
-
-// NEW
-max_tokens: 2000
-```
-
-See existing implementation: [`packages/monitoring/analyze-logs/index.js`](../packages/monitoring/analyze-logs/index.js)
-
----
-
-## Step 6: Deploy & Test
-
-### Deploy
-
-```bash
-# Deploy all functions
-doctl serverless deploy .
-
-# Verify deployment
-doctl serverless functions list
-```
-
-### Test Functions Directly
-
-```bash
-# Test ai-agent-get-runbook
-doctl serverless functions invoke monitoring/ai-agent-get-runbook \
-  -p issue_type:high-error-rate
-
-# Test ai-agent-search-incidents
-doctl serverless functions invoke monitoring/ai-agent-search-incidents \
-  -p keywords:memory
-
-# Test ai-agent-search-github-issues
-doctl serverless functions invoke monitoring/ai-agent-search-github-issues \
-  -p keywords:error
-
-# Expected outputs
-# { "runbook": "# High Error Rate\n\n**Causes**: ..." }
-# { "incidents": [{ "type": "memory-warning", "title": "...", ... }] }
-# { "issues": [{ "number": 42, "title": "...", "resolution": "...", ... }] }
-```
-
-### Test Full Flow
-
-```bash
-# Trigger analysis
-doctl serverless functions invoke monitoring/analyze-logs
-
-# Check logs for function calls
-doctl serverless activations list --limit 10
-doctl serverless activations logs <activation-id>
-```
-
-### Verify Agent Uses Functions
-
-Check activation logs for:
-```
-[ai-agent-get-runbook] Requested: high-error-rate
-[ai-agent-get-runbook] Found runbook: 423 chars
-[ai-agent-search-incidents] Keywords: memory, limit: 5
-[ai-agent-search-incidents] Found 2 incidents
-[ai-agent-search-github-issues] Keywords: error spike, limit: 5
-[ai-agent-search-github-issues] Found 3 issues
-```
+**Configuration:**
+- `max_tokens: 2000` (detailed responses)
+- `timeout: 60000` (function call overhead)
 
 ---
 
 ## Maintenance
 
-```mermaid
-flowchart LR
-    A[Incident occurs] --> B[Add post-mortem]
-    B --> C[Update runbooks]
-    C --> D[Redeploy functions]
+### Update Documentation
 
-    style A fill:#fd79a8
-    style D fill:#00b894
+```bash
+# Sync latest docs from GitHub
+doctl serverless functions invoke monitoring/sync-docs-to-spaces
 ```
 
-1. Add post-mortems to `knowledge/incidents/`
-2. Update runbooks when procedures change
-3. Redeploy: `doctl serverless deploy .`
+### Add Runbooks
 
----
+1. Create file in `packages/monitoring/ai-agent-get-runbook/knowledge/runbooks/<type>.md`
+2. Deploy: `doctl serverless deploy .`
 
-## Expected Results
+### Post-Mortem Template
 
-| Before | After |
-|--------|-------|
-| "High error rate detected" | "High error rate detected. Similar to incident 2024-01 (pool exhaustion). Check: `SELECT count(*) FROM pg_stat_activity`" |
-| "Memory warning" | "Memory warning matches known OOM pattern. Fix: Restart service, check handlers per runbook." |
+```markdown
+# Incident Title
 
----
+**Date**: YYYY-MM-DD
+**Duration**: X minutes
+**Severity**: High/Medium/Low
+**Impact**: Description of impact
 
-## Cost & Rate Limits
+## Timeline
+- HH:MM - Event occurred
+- HH:MM - Detection
+- HH:MM - Resolution
 
-| Item | Cost |
-|------|------|
-| GenAI tokens | Slightly higher (function call overhead) |
-| Function invocations | Included in DO Functions free tier |
-| Database queries | Minimal |
+## Root Cause
+What caused the incident.
 
-### GitHub API Rate Limits
+## Resolution
+Steps taken to resolve.
 
-GitHub API limit: **5000 requests/hour** (authenticated)
+## Lessons Learned
+- Lesson 1
+- Lesson 2
 
-Current usage estimate:
-| Function | Schedule | Calls/Hour |
-|----------|----------|------------|
-| `version-bump-bot` | Every 15 min | 8 |
-| `send-digest` | Daily 8 AM | ~0.04 |
-| `ai-agent-search-github-issues` | Every 15 min | ~24 max |
-
-**Total: ~32 calls/hour** (< 1% of limit)
-
-To reduce calls if needed:
-- Cache search results
-- Reduce `limit` parameter
-- Skip comments fetching for older issues
+## Action Items
+- [ ] Action 1
+- [ ] Action 2
+```
 
 ---
 
 ## Troubleshooting
 
-| Issue | Check | Solution |
-|-------|-------|----------|
-| Functions not called | Activation logs | Verify routes in Agent Platform |
-| Empty runbook | `doctl serverless functions invoke` | Check file path, verify knowledge/ included |
-| No incidents found | Database query | Verify resolved issues exist |
-| No GitHub issues | GitHub API response | Check ALERTS_REPO, GH_TOKEN, and closed issues exist |
-| Timeout errors | Activation logs | Increase timeout to 60000ms |
-| Permission denied | API response | Check DO_API_TOKEN and agent UUID |
+| Issue | Solution |
+|-------|----------|
+| Sync fails with "Access Denied" | Grant Spaces key access to bucket in Control Panel |
+| KB won't attach | Ensure data exists in Spaces and agent has retrieval enabled |
+| Function not found | Verify `doctl genai agent get $UUID -o json \| jq '.[0].functions'` |
+| Empty runbook | Check file path in `knowledge/runbooks/` directory |
+| No incidents | Verify resolved issues exist in database |
 
 ### Debug Commands
 
 ```bash
-# View recent activations
-doctl serverless activations list --limit 20
+# Check function routes
+doctl genai agent get $AGENT_UUID -o json | jq '.[0].functions[] | {name, faas_name}'
 
-# View specific activation logs
+# View activations
+doctl serverless activations list --limit 10
+
+# Check specific activation
 doctl serverless activations logs <id>
 
-# Test function locally
-cd packages/monitoring/ai-agent-get-runbook
-node -e "import('./index.js').then(m => m.main({issue_type:'high-error-rate'}).then(console.log))"
+# Test functions directly
+doctl serverless functions invoke monitoring/ai-agent-get-runbook -p issue_type:high-error-rate
 ```
 
-### Common Errors
+### Known Limitations
 
-**"No runbook found"**:
-- Check `knowledge/runbooks/` has matching filename
-- Verify `include: knowledge/**` in project.yml
+- Spaces bucket creation requires Control Panel (not API)
+- Spaces keys need explicit bucket permissions
+- KB must have data before attaching to agent
+- `include` key not supported in project.yml
 
-**"Connection refused"**:
-- Check DATABASE_URL environment variable
-- Verify PostgreSQL is accessible
+---
 
-**"Function not registered"**:
-- Re-add function route in Agent Platform
-- Check namespace matches project.yml
+## Expected Results
+
+**Before:**
+> "High error rate detected"
+
+**After:**
+> "High error rate detected. Similar to incident 2024-01 (pool exhaustion). Based on runbook: Check `SELECT count(*) FROM pg_stat_activity`, increase pool size, restart service."
