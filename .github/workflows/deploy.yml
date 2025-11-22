@@ -69,6 +69,8 @@ jobs:
           GREEN_HOST: ${{ vars.GREEN_HOST }}
           ALERTS_REPO: ${{ vars.ALERTS_REPO }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          SPACES_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
+          SPACES_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
         run: |
           if [ -n "${{ github.event.inputs.function }}" ]; then
             echo "Deploying: ${{ github.event.inputs.function }}"
