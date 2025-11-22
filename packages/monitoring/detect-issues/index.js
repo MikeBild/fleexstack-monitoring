@@ -1,9 +1,11 @@
 import pg from 'pg'
 import crypto from 'crypto'
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: true,
 })
 
 export async function main(event, context) {
@@ -95,8 +97,8 @@ export async function main(event, context) {
 
     for (const issue of issues) {
       await client.query(
-        `INSERT INTO "LogIssue" (id, type, severity, title, description, "rootCause", recommendation, source, status, "detectedAt", metadata)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `INSERT INTO "LogIssue" (id, type, severity, title, description, "rootCause", recommendation, source, status, "detectedAt", "updatedAt", metadata, "affectedLogs")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           crypto.randomUUID(),
           issue.type,
@@ -108,7 +110,9 @@ export async function main(event, context) {
           'detector',
           'open',
           new Date(),
+          new Date(),
           JSON.stringify(issue.metadata || {}),
+          [],
         ]
       )
     }

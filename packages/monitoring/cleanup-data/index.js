@@ -1,8 +1,10 @@
 import pg from 'pg'
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: true,
 })
 
 export async function main(event, context) {

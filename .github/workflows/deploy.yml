@@ -64,6 +64,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           GENAI_AGENT_URL: ${{ vars.GENAI_AGENT_URL }}
+          GENAI_API_KEY: ${{ secrets.GENAI_API_KEY }}
           BLUE_HOST: ${{ vars.BLUE_HOST }}
           GREEN_HOST: ${{ vars.GREEN_HOST }}
           ALERTS_REPO: ${{ vars.ALERTS_REPO }}
