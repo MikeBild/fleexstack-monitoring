@@ -71,6 +71,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SPACES_ACCESS_KEY_ID: ${{ secrets.SPACES_ACCESS_KEY_ID }}
           SPACES_SECRET_ACCESS_KEY: ${{ secrets.SPACES_SECRET_ACCESS_KEY }}
+          SPACES_BUCKET: ${{ vars.SPACES_BUCKET }}
+          SPACES_REGION: ${{ vars.SPACES_REGION }}
+          DOCS_REPO: ${{ vars.DOCS_REPO }}
+          DOCS_PATH: ${{ vars.DOCS_PATH }}
         run: |
           if [ -n "${{ github.event.inputs.function }}" ]; then
             echo "Deploying: ${{ github.event.inputs.function }}"
