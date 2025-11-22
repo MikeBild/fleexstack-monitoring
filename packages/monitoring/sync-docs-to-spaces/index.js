@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const getGitHubHeaders = (token) => ({
   'Authorization': `Bearer ${token}`,
@@ -6,13 +6,41 @@ const getGitHubHeaders = (token) => ({
   'User-Agent': 'Fleexstack-Monitoring-Bot',
 })
 
+async function fetchFilesRecursively(repo, path, headers) {
+  const files = []
+  const url = `https://api.github.com/repos/${repo}/contents/${path}`
+
+  const response = await fetch(url, { headers })
+  if (!response.ok) {
+    console.error(`[sync-docs-to-spaces] Failed to fetch: ${path}`)
+    return files
+  }
+
+  const contents = await response.json()
+
+  for (const item of contents) {
+    if (item.type === 'file') {
+      files.push({
+        name: item.name,
+        path: item.path,
+        download_url: item.download_url,
+      })
+    } else if (item.type === 'dir') {
+      const subFiles = await fetchFilesRecursively(repo, item.path, headers)
+      files.push(...subFiles)
+    }
+  }
+
+  return files
+}
+
 export async function main(event, context) {
   console.log('[sync-docs-to-spaces] Started')
 
   const repo = process.env.DOCS_REPO || 'MikeBild/fleexstack'
   const docsPath = process.env.DOCS_PATH || 'docs'
   const token = process.env.GH_TOKEN
-  const bucket = process.env.SPACES_BUCKET || 'fleexstack-docs'
+  const bucket = process.env.SPACES_BUCKET || 'fleexstack-monitoring'
   const region = process.env.SPACES_REGION || 'fra1'
 
   if (!token) {
@@ -37,43 +65,34 @@ export async function main(event, context) {
   const headers = getGitHubHeaders(token)
 
   try {
-    // Get docs directory contents from GitHub
-    const contentsUrl = `https://api.github.com/repos/${repo}/contents/${docsPath}`
-    console.log(`[sync-docs-to-spaces] Fetching: ${contentsUrl}`)
+    console.log(`[sync-docs-to-spaces] Fetching files recursively from: ${repo}/${docsPath}`)
 
-    const response = await fetch(contentsUrl, { headers })
-    if (!response.ok) {
-      const error = await response.text()
-      console.error(`[sync-docs-to-spaces] GitHub API error: ${response.status}`, error)
-      return { body: { error: `GitHub API error: ${response.status}` } }
-    }
-
-    const contents = await response.json()
-    const files = contents.filter(item => item.type === 'file' && item.name.endsWith('.md'))
-
-    console.log(`[sync-docs-to-spaces] Found ${files.length} markdown files`)
+    const allFiles = await fetchFilesRecursively(repo, docsPath, headers)
+    console.log(`[sync-docs-to-spaces] Found ${allFiles.length} files total`)
 
     let synced = 0
-    for (const file of files) {
-      // Fetch file content
+    for (const file of allFiles) {
       const fileResponse = await fetch(file.download_url)
       if (!fileResponse.ok) {
-        console.error(`[sync-docs-to-spaces] Failed to fetch: ${file.name}`)
+        console.error(`[sync-docs-to-spaces] Failed to fetch: ${file.path}`)
         continue
       }
 
       const content = await fileResponse.text()
+      const contentType = file.name.endsWith('.md') ? 'text/markdown' :
+                         file.name.endsWith('.json') ? 'application/json' :
+                         file.name.endsWith('.yml') || file.name.endsWith('.yaml') ? 'text/yaml' :
+                         'text/plain'
 
-      // Upload to Spaces
       await s3.send(new PutObjectCommand({
         Bucket: bucket,
-        Key: `docs/${file.name}`,
+        Key: file.path,
         Body: content,
-        ContentType: 'text/markdown',
+        ContentType: contentType,
         ACL: 'public-read',
       }))
 
-      console.log(`[sync-docs-to-spaces] Synced: ${file.name}`)
+      console.log(`[sync-docs-to-spaces] Synced: ${file.path}`)
       synced++
     }
 
