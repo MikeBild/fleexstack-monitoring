@@ -15,6 +15,7 @@ packages:
       GENAI_API_KEY: ${GENAI_API_KEY}
       BLUE_HOST: ${BLUE_HOST}
       GREEN_HOST: ${GREEN_HOST}
+      GH_TOKEN: ${GH_TOKEN}
     functions:
       - name: scheduler
         runtime: nodejs:18
