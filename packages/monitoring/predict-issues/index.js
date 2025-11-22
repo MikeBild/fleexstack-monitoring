@@ -141,7 +141,34 @@ export async function main(event, context) {
       created++
     }
 
-    console.log(`[predict-issues] Completed: detected=${predictions.length}, created=${created}, updated=${updated}`)
+    // Auto-resolve predictions when patterns disappear
+    let resolved = 0
+    const detectedTypes = predictions.map(p => p.type)
+
+    // Get open predictor issues that weren't detected this run
+    const { rows: openPredictions } = await client.query(
+      `SELECT id, type FROM "LogIssue"
+       WHERE source = 'predictor' AND status = 'open'
+       AND "updatedAt" < NOW() - INTERVAL '6 hours'`
+    )
+
+    for (const prediction of openPredictions) {
+      if (!detectedTypes.includes(prediction.type)) {
+        await client.query(
+          `UPDATE "LogIssue"
+           SET status = 'resolved',
+               "resolvedAt" = NOW(),
+               "updatedAt" = NOW(),
+               metadata = metadata || $1
+           WHERE id = $2`,
+          [JSON.stringify({ autoResolved: true, resolvedReason: 'Trend no longer detected' }), prediction.id]
+        )
+        console.log(`[predict-issues] Auto-resolved prediction: ${prediction.type}`)
+        resolved++
+      }
+    }
+
+    console.log(`[predict-issues] Completed: detected=${predictions.length}, created=${created}, updated=${updated}, resolved=${resolved}`)
 
     return {
       body: {
@@ -149,6 +176,7 @@ export async function main(event, context) {
         predictions: predictions.length,
         predictionsCreated: created,
         predictionsUpdated: updated,
+        predictionsResolved: resolved,
         logsAnalyzed: hourlyTrend.reduce((sum, h) => sum + parseInt(h.total), 0),
       },
     }

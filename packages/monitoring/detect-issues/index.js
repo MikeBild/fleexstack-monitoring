@@ -145,7 +145,34 @@ export async function main(event, context) {
       created++
     }
 
-    console.log(`[detect-issues] Completed: detected=${issues.length}, created=${created}, updated=${updated}, errorRate=${(errorRate * 100).toFixed(2)}%`)
+    // Auto-resolve issues when patterns disappear
+    let resolved = 0
+    const detectedTypes = issues.map(i => i.type)
+
+    // Get open detector issues that weren't detected this run
+    const { rows: openIssues } = await client.query(
+      `SELECT id, type FROM "LogIssue"
+       WHERE source = 'detector' AND status = 'open'
+       AND "updatedAt" < NOW() - INTERVAL '1 hour'`
+    )
+
+    for (const issue of openIssues) {
+      if (!detectedTypes.includes(issue.type)) {
+        await client.query(
+          `UPDATE "LogIssue"
+           SET status = 'resolved',
+               "resolvedAt" = NOW(),
+               "updatedAt" = NOW(),
+               metadata = metadata || $1
+           WHERE id = $2`,
+          [JSON.stringify({ autoResolved: true, resolvedReason: 'Pattern no longer detected' }), issue.id]
+        )
+        console.log(`[detect-issues] Auto-resolved issue: ${issue.type}`)
+        resolved++
+      }
+    }
+
+    console.log(`[detect-issues] Completed: detected=${issues.length}, created=${created}, updated=${updated}, resolved=${resolved}, errorRate=${(errorRate * 100).toFixed(2)}%`)
 
     return {
       body: {
@@ -153,6 +180,7 @@ export async function main(event, context) {
         issuesDetected: issues.length,
         issuesCreated: created,
         issuesUpdated: updated,
+        issuesResolved: resolved,
         errorRate: (errorRate * 100).toFixed(2) + '%',
       },
     }
