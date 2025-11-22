@@ -83,7 +83,13 @@ export async function main(event, context) {
 
           let issues = []
           try {
-            const jsonMatch = content.match(/\{[\s\S]*\}/)
+            // Strip markdown code fences if present
+            let jsonContent = content
+              .replace(/^```(?:json)?\s*/i, '')
+              .replace(/\s*```$/i, '')
+              .trim()
+
+            const jsonMatch = jsonContent.match(/\{[\s\S]*\}/)
             if (jsonMatch) {
               const parsed = JSON.parse(jsonMatch[0])
               issues = parsed.issues || parsed.issuesDetected || []
