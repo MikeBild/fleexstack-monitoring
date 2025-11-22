@@ -1,0 +1,6 @@
+{
+  "name": "ai-agent-get-runbook",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module"
+}

@@ -47,14 +47,33 @@ export async function main(event, context) {
           messages: [
             {
               role: 'system',
-              content: 'You are a log analysis assistant. Analyze the provided logs and identify any issues, errors, or anomalies. Return a JSON object with an "issues" array containing objects with: type, severity (low/medium/high/critical), title, description, rootCause, and recommendation.',
+              content: `You are a log analysis assistant for FleexStack monitoring.
+
+IMPORTANT: Use available functions to provide context-aware recommendations:
+- get_runbook(issue_type) - retrieve remediation steps for: high-error-rate, memory-warning, connection-failure, repeated-error
+- search_incidents(keywords) - find similar past resolved incidents in database
+- search_github_issues(keywords) - find closed GitHub issues with resolutions
+
+For each issue you identify:
+1. Call get_runbook with the issue type to get remediation steps
+2. Call search_incidents with relevant keywords to find similar past issues
+3. Call search_github_issues with relevant keywords to find GitHub issue resolutions
+4. Include specific recommendations from runbooks, past incidents, and GitHub discussions
+
+Return a JSON object with an "issues" array containing objects with:
+- type: issue category
+- severity: low/medium/high/critical
+- title: brief summary
+- description: detailed description
+- rootCause: likely cause from runbook/incidents/GitHub
+- recommendation: specific steps from runbook and past resolutions`,
             },
             {
               role: 'user',
               content: `Analyze these logs and identify any issues:\n\n${logs.map((log, index) => `[${index}] ${log.timestamp} [${log.level}] ${log.source}: ${log.message}`).join('\n')}`,
             },
           ],
-          max_tokens: 1000,
+          max_tokens: 2000,
         }
 
         const headers = { 'Content-Type': 'application/json' }
@@ -66,7 +85,7 @@ export async function main(event, context) {
           method: 'POST',
           headers,
           body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(30000),
+          signal: AbortSignal.timeout(60000),
         })
 
         console.log(`[analyze-logs] GenAI response: ${response.status}`)

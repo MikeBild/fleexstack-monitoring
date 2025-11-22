@@ -64,6 +64,10 @@ graph TB
 | `predict-issues` | Hourly | Trend analysis and predictions |
 | `send-digest` | Daily 8 AM | Daily summary report |
 | `cleanup-data` | Daily 2 AM | Clean old logs and issues |
+| `sync-docs-to-spaces` | Manual | Sync GitHub docs to DO Spaces for KB |
+| `ai-agent-get-runbook` | On-demand | Retrieve runbook for issue type |
+| `ai-agent-search-incidents` | On-demand | Search resolved incidents |
+| `ai-agent-search-github-issues` | On-demand | Search closed GitHub issues |
 | `fleexstack-sample-app-version-bump-bot` | Every 15 min | Auto-increment version in sample app |
 
 ## Key Features

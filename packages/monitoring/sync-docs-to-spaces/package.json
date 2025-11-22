@@ -1,0 +1,9 @@
+{
+  "name": "sync-docs-to-spaces",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.450.0"
+  }
+}

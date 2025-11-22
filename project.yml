@@ -85,3 +85,43 @@ packages:
         limits:
           timeout: 60000
           memory: 128
+
+      - name: ai-agent-get-runbook
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 30000
+          memory: 128
+
+      - name: ai-agent-search-incidents
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 30000
+          memory: 128
+
+      - name: ai-agent-search-github-issues
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 30000
+          memory: 128
+
+      - name: sync-docs-to-spaces
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 120000
+          memory: 256
+        environment:
+          GH_TOKEN: ${GH_TOKEN}
+          DOCS_REPO: MikeBild/fleexstack
+          DOCS_PATH: docs
+          SPACES_BUCKET: fleexstack-monitoring
+          SPACES_REGION: fra1
+          SPACES_ACCESS_KEY_ID: ${SPACES_ACCESS_KEY_ID}
+          SPACES_SECRET_ACCESS_KEY: ${SPACES_SECRET_ACCESS_KEY}
