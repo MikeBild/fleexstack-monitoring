@@ -133,6 +133,9 @@ doctl serverless functions invoke monitoring/analyze-logs --no-wait
 
 # With parameters
 doctl serverless functions invoke monitoring/cleanup-data -p days:7
+
+# Version bump bot
+doctl serverless functions invoke monitoring/fleexstack-sample-app-version-bump-bot
 ```
 
 ### Check Scheduler

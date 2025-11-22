@@ -14,6 +14,7 @@ graph TB
         PI[predict-issues<br/>Hourly]
         SD[send-digest<br/>Daily 8 AM]
         CD[cleanup-data<br/>Daily 2 AM]
+        VB[version-bump-bot<br/>Every 15 min]
     end
 
     subgraph "Infrastructure"
@@ -32,6 +33,13 @@ graph TB
     SCH --> PI
     SCH --> SD
     SCH --> CD
+    SCH --> VB
+
+    subgraph "External Repos"
+        GH[GitHub API<br/>fleexstack-sample-app]
+    end
+
+    VB --> GH
 
     CL --> Blue
     CL --> Green
@@ -50,7 +58,9 @@ graph TB
     style PI fill:#4ecdc4
     style SD fill:#4ecdc4
     style CD fill:#4ecdc4
+    style VB fill:#4ecdc4
     style GenAI fill:#e1f5ff
+    style GH fill:#f5f5f5
     style DB fill:#ffeaa7
 ```
 
@@ -277,6 +287,27 @@ sequenceDiagram
     DB-->>CD: Deleted count
 
     CD-->>S: Return {logsDeleted, issuesDeleted}
+```
+
+### 7. fleexstack-sample-app-version-bump-bot
+
+```mermaid
+sequenceDiagram
+    participant S as Scheduler
+    participant VB as version-bump-bot
+    participant GH as GitHub API
+
+    S->>VB: Trigger (every 15 min)
+
+    VB->>GH: GET /repos/MikeBild/fleexstack-sample-app/contents/package.json
+    GH-->>VB: {content: base64, sha: "..."}
+
+    Note over VB: Decode, parse JSON,<br/>increment patch version
+
+    VB->>GH: PUT /repos/.../contents/package.json<br/>{message, content, sha}
+    GH-->>VB: {commit: {sha, html_url}}
+
+    VB-->>S: Return {fromVersion, toVersion, commitSha}
 ```
 
 ## Issue Creation Flow

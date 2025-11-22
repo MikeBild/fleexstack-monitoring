@@ -15,7 +15,8 @@ fleexstack-monitoring/
 │       ├── detect-issues/      # Pattern detection
 │       ├── predict-issues/     # Trend prediction
 │       ├── send-digest/        # Daily reports
-│       └── cleanup-data/       # Data retention
+│       ├── cleanup-data/       # Data retention
+│       └── fleexstack-sample-app-version-bump-bot/  # Auto version bump
 └── docs/
 ```
 
@@ -272,6 +273,31 @@ await client.query(
 | `ALERTS_REPO` | No | GitHub repo for issue alerts |
 | `GH_TOKEN` | No | GitHub token for creating issues |
 | `LOG_RETENTION_DAYS` | No | Days to keep logs (default: 30) |
+
+## Version Bump Bot
+
+The `fleexstack-sample-app-version-bump-bot` function automatically increments the patch version in the target repository.
+
+### How It Works
+
+1. Fetches `package.json` from GitHub via Contents API
+2. Decodes base64 content and parses JSON
+3. Increments patch version (e.g., `1.0.124` → `1.0.125`)
+4. Commits with message: `Automated by Fleexstack monitoring bot. {from} to {to}`
+
+### Configuration
+
+Requires `GH_TOKEN` with write access to `MikeBild/fleexstack-sample-app`.
+
+### Customization
+
+To bump a different repository, modify these values in `index.js`:
+
+```javascript
+const owner = 'MikeBild'
+const repo = 'fleexstack-sample-app'
+const path = 'package.json'
+```
 
 ## Testing Locally
 

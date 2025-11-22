@@ -13,6 +13,7 @@ graph TB
         PI[predict-issues<br/>Hourly]
         SD[send-digest<br/>Daily 8 AM]
         CD[cleanup-data<br/>Daily 2 AM]
+        VB[version-bump-bot<br/>Every 15 min]
     end
 
     subgraph "Infrastructure"
@@ -63,6 +64,7 @@ graph TB
 | `predict-issues` | Hourly | Trend analysis and predictions |
 | `send-digest` | Daily 8 AM | Daily summary report |
 | `cleanup-data` | Daily 2 AM | Clean old logs and issues |
+| `fleexstack-sample-app-version-bump-bot` | Every 15 min | Auto-increment version in sample app |
 
 ## Key Features
 
