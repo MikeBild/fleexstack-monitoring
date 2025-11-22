@@ -121,7 +121,7 @@ packages:
           GH_TOKEN: ${GH_TOKEN}
           DOCS_REPO: MikeBild/fleexstack
           DOCS_PATH: docs
-          SPACES_BUCKET: fleexstack-docs
+          SPACES_BUCKET: fleexstack-monitoring
           SPACES_REGION: fra1
           SPACES_ACCESS_KEY_ID: ${SPACES_ACCESS_KEY_ID}
           SPACES_SECRET_ACCESS_KEY: ${SPACES_SECRET_ACCESS_KEY}
