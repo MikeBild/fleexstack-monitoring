@@ -10,8 +10,14 @@ const pool = new pg.Pool({
 
 export async function main(event, context) {
   console.log('[analyze-e2e-results] Started')
+  console.log('[analyze-e2e-results] Event keys:', Object.keys(event))
 
-  const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body || {}
+  // Handle both direct body and nested body from web invocation
+  let body = event
+  if (event.body) {
+    body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body
+  }
+
   const {
     workflowRun,
     environment,
@@ -20,6 +26,8 @@ export async function main(event, context) {
     results = {},
     timestamp = new Date().toISOString(),
   } = body
+
+  console.log('[analyze-e2e-results] Parsed - allPassed:', results.allPassed)
 
   console.log(`[analyze-e2e-results] Workflow: ${workflowRun}, Environment: ${environment}, Version: ${version}`)
 
