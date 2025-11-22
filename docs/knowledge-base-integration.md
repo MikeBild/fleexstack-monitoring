@@ -2,6 +2,8 @@
 
 Enhance GenAI log analysis with operational knowledge for context-aware recommendations.
 
+> **Related**: [Architecture](./architecture.md) | [Developer Guide](./developers.md) | [Operator Guide](./operators.md)
+
 ## Overview
 
 ```mermaid
@@ -63,22 +65,27 @@ doctl serverless functions invoke monitoring/sync-docs-to-spaces
 ### 4. Create & Attach Knowledge Base
 
 ```bash
+# Get project ID and agent UUID
+PROJECT_ID=$(doctl projects list -o json | jq -r '.[0].id')
+AGENT_UUID=$(doctl genai agent list -o json | jq -r '.[0].uuid')
+
 # Create KB
 doctl genai knowledge-base create \
   --name "fleexstack-docs" \
   --region "tor1" \
-  --project-id "d4d45fd9-0b7c-4daf-a5ca-7507b1266413" \
+  --project-id "$PROJECT_ID" \
   --embedding-model-uuid "22653204-79ed-11ef-bf8f-4e013e2ddde4" \
   --data-sources '[{"spaces_data_source":{"bucket_name":"fleexstack-monitoring","item_path":"/docs","region":"fra1"}}]'
 
 # Get KB UUID from output, then attach
-doctl genai knowledge-base attach <AGENT_UUID> <KB_UUID>
+KB_UUID=$(doctl genai knowledge-base list -o json | jq -r '.[] | select(.name=="fleexstack-docs") | .uuid')
+doctl genai knowledge-base attach $AGENT_UUID $KB_UUID
 ```
 
 ### 5. Configure Function Routes
 
 ```bash
-AGENT_UUID=$(doctl genai agent list -o json | jq -r '.[0].uuid')
+# AGENT_UUID already set in step 4
 FAAS_NS=$(doctl serverless namespaces list -o json | jq -r '.[0].namespace')
 
 # Add all three routes
@@ -228,22 +235,9 @@ Returns runbook content for a specific issue type.
 
 Searches resolved issues in PostgreSQL for similar past incidents.
 
-**Database Schema:**
-```sql
-CREATE TABLE "LogIssue" (
-  id UUID PRIMARY KEY,
-  type VARCHAR(50) NOT NULL,
-  severity VARCHAR(20) NOT NULL,
-  title VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL,
-  "rootCause" TEXT,
-  recommendation TEXT,
-  status VARCHAR(20) DEFAULT 'open',
-  "resolvedAt" TIMESTAMP
-);
-```
-
 **Search columns**: `title`, `description`, `rootCause` (ILIKE)
+
+> See [Architecture - Database Schema](./architecture.md#database-schema) for full LogIssue table definition.
 
 ### Function: ai-agent-search-github-issues
 
@@ -395,6 +389,21 @@ doctl serverless activations logs <id>
 doctl serverless functions invoke monitoring/ai-agent-get-runbook -p issue_type:high-error-rate
 ```
 
+### Cleanup & Removal
+
+```bash
+# Remove function routes
+doctl genai agent functionroute delete --agent-id $AGENT_UUID --name get_runbook
+doctl genai agent functionroute delete --agent-id $AGENT_UUID --name search_incidents
+doctl genai agent functionroute delete --agent-id $AGENT_UUID --name search_github_issues
+
+# Detach and delete knowledge base
+doctl genai knowledge-base detach $AGENT_UUID $KB_UUID
+doctl genai knowledge-base delete $KB_UUID
+
+# Delete Spaces bucket (via Control Panel or s3cmd)
+```
+
 ### Known Limitations
 
 - Spaces bucket creation requires Control Panel (not API)
@@ -406,8 +415,26 @@ doctl serverless functions invoke monitoring/ai-agent-get-runbook -p issue_type:
 
 ## Expected Results
 
+### High Error Rate
+
 **Before:**
 > "High error rate detected"
 
 **After:**
 > "High error rate detected. Similar to incident 2024-01 (pool exhaustion). Based on runbook: Check `SELECT count(*) FROM pg_stat_activity`, increase pool size, restart service."
+
+### Memory Warning
+
+**Before:**
+> "Memory usage exceeds threshold"
+
+**After:**
+> "Memory warning detected on blue node. Previous incident #42 resolved by increasing container memory to 512MB. Runbook suggests: Check `docker stats`, review memory leaks in recent deployments, consider horizontal scaling."
+
+### Connection Failure
+
+**Before:**
+> "Database connection failed"
+
+**After:**
+> "Connection failure to PostgreSQL. GitHub issue #15 resolved similar issue caused by max_connections limit. Recommended: Check `pg_stat_activity` for idle connections, verify connection pool settings, restart connection pool."
