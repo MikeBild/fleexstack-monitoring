@@ -13,10 +13,10 @@ export async function main(event, context) {
   const scheduled = []
   if (minute % 5 === 0) scheduled.push('collect-logs')
   if (minute % 15 === 0) scheduled.push('analyze-logs')
-  if ([5, 20, 35, 50].includes(minute)) scheduled.push('detect-issues')
-  if (minute === 0) scheduled.push('predict-issues')
-  if (hour === 8 && minute === 0) scheduled.push('send-digest')
-  if (hour === 2 && minute === 0) scheduled.push('cleanup-data')
+  if (minute % 15 === 5) scheduled.push('detect-issues')
+  if (minute === 0 || minute === 5) scheduled.push('predict-issues')
+  if (hour === 8 && (minute === 0 || minute === 5)) scheduled.push('send-digest')
+  if (hour === 2 && (minute === 0 || minute === 5)) scheduled.push('cleanup-data')
 
   console.log(`[scheduler] Functions to invoke: ${scheduled.length > 0 ? scheduled.join(', ') : 'none'}`)
 
