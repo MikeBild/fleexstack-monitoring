@@ -125,3 +125,11 @@ packages:
           SPACES_REGION: fra1
           SPACES_ACCESS_KEY_ID: ${SPACES_ACCESS_KEY_ID}
           SPACES_SECRET_ACCESS_KEY: ${SPACES_SECRET_ACCESS_KEY}
+
+      - name: analyze-e2e-results
+        runtime: nodejs:18
+        main: main
+        web: true
+        limits:
+          timeout: 120000
+          memory: 256

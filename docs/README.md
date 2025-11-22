@@ -68,6 +68,7 @@ graph TB
 | `ai-agent-get-runbook` | On-demand | Retrieve runbook for issue type |
 | `ai-agent-search-incidents` | On-demand | Search resolved incidents |
 | `ai-agent-search-github-issues` | On-demand | Search closed GitHub issues |
+| `analyze-e2e-results` | On-demand | Analyze E2E verification results with AI |
 | `fleexstack-sample-app-version-bump-bot` | Every 15 min | Auto-increment version in sample app |
 
 ## Key Features
